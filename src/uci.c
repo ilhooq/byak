@@ -53,11 +53,11 @@ void uci_exec(char * token)
 		char name[256];
 		char value[256];
 
-		sscanf(token, "setoption name %s value %s", name, value);
+		sscanf(token, "setoption name %255s value %255s", name, value);
 
 		if (!strcmp(name, "Hash")) {
 			int val;
-			sscanf(value, "%d", &val);
+			sscanf(value, "%4u", &val);
 			/* transform val to a power of two number */
 			tt_setsize(val << 20);
 		}

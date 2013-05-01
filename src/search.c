@@ -107,11 +107,11 @@ static void _printPV(int score, int depth)
 	printf("\n");
 }
 
-static void printCurmove(Move * move, int depth, int n)
+static void printCurmove(Move * move, int depth, int mvNbr)
 {
 	printf("info depth %d currmove ", depth);
 	move_displayUCI(move);
-	printf(" currmovenumber %d\n",  n);
+	printf(" currmovenumber %d\n",  mvNbr);
 }
 
 static void sortMoves(Move * movelist, U8 listlen, int ply)

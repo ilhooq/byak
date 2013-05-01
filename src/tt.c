@@ -41,13 +41,14 @@ int tt_setsize(int size)
 	*/
 
 	free(tt);
-	int i;
+
 	/*
 	check if size is a power of 2
 	if not, make it the next lower power of 2
 	this allows for a faster access of the entry needed:
 	*/
 	if (size & (size - 1)) {
+		int i;
 		size--;
 		for (i=1; i < 32; i=i*2) {
 			size |= size >> i;
