@@ -15,8 +15,14 @@
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
-
+#if !defined(_WIN32) && !defined(_WIN64)
+/* Linux - Unix */
 #include <pthread.h>
+#else
+/* windows and Mingw */
+#include <windows.h>
+#endif
+
 #include <stdio.h>
 #include <stdlib.h> 
 #include <string.h>
@@ -24,12 +30,28 @@
 #include "position.h"
 #include "search.h"
 
-pthread_t SearchThread;
-
 static void uci_go(char * token)
 {
 	// search_start();
+	#if !defined(_WIN32) && !defined(_WIN64)
+	/* Linux - Unix */
+	pthread_t SearchThread;
 	pthread_create(&SearchThread, NULL, search_start, NULL);
+	/* Don't need to call pthread_join() as the thread  never calls pthread_exit() */
+	#else
+	/* windows and Mingw */
+	HANDLE SearchThread;
+	DWORD  threadId;
+	SearchThread = CreateThread( 
+		NULL,         // default security attributes
+		0,            // use default stack size  
+		(LPTHREAD_START_ROUTINE) search_start, // thread function name
+		NULL,         // argument to thread function 
+		0,            // use default creation flags 
+		&threadId);   // returns the thread identifier
+
+		CloseHandle(SearchThread);
+	#endif
 }
 
 void uci_exec(char * token)

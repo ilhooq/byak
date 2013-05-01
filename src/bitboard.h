@@ -137,7 +137,7 @@ int bitboard_bitScanForward(U64 bb);
  * @precondition bb != 0
  * @return index (0..63) of most significant one bit
  */
-Square bitboard_bitScanReverse(U64 bb);
+int bitboard_bitScanReverse(U64 bb);
 
 /**
  * bitboard_display

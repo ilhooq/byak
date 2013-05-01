@@ -281,33 +281,42 @@ U64 bitboard_algToBin(const char *alg)
 	return rank & file;
 }
 
+#if !(defined __LP64__ || defined __LLP64__) || defined _WIN32 && !defined _WIN64
+/* This code works for 32 bits or 64 bits procesors*/
+int bitboard_bitScanForward(U64 bb) 
+{
+	assert(bb);
+	/* Returns one plus the index of the 
+	 * least significant 1-bit of x, or if x is zero, returns zero */
+	return __builtin_ffsll(bb) - 1;
+}
 
+int bitboard_bitScanReverse(U64 bb) 
+{
+	assert(bb);
+	/* Returns the number of leading 0-bits in x, starting at the most 
+	 * significant bit position. If x is 0, the result is undefined */
+	return 63 - __builtin_clzll(bb);
+}
 
-#if defined(__GNUC__) && defined(__LP64__)
+#else
 /* This code is only for 64 bits procesors */
 
 int bitboard_bitScanForward(U64 bb)
 {
 	U64 index;
-	//if (!bb) {
-	//	bitboard_display(bb);
-	//}
-	
-	assert(bb != 0);
-	/* __asm__("bsfq %1, %0": "=r"(index): "rm"(bb) ); */
-	__asm__("bsfq %1, %0": "=r"(index): "r"(bb) );
-	return (Square) index;
+	assert(bb);
+	__asm__("bsfq %1, %0": "=r"(index): "rm"(bb) );
+	return (int) index;
 }
 
 
-Square bitboard_bitScanReverse(U64 bb)
+int bitboard_bitScanReverse(U64 bb)
 {
 	U64 index;
-	assert(bb != 0);
-	/*__asm__("bsrq %1, %0": "=r"(index): "rm"(bb));*/
-	/* Use r instead of rm to access proc register instead of memory */
-	__asm__("bsrq %1, %0": "=r"(index): "r"(bb) );
-	return (Square) index;
+	assert(bb);
+	__asm__("bsrq %1, %0": "=r"(index): "rm"(bb) );
+	return (int) index;
 }
 
 #endif
