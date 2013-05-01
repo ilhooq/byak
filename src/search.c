@@ -1,6 +1,3 @@
-
-#include <assert.h>
-#include <stdio.h>
 /**
 * Byak, a UCI chess engine.
 * Copyright (C) 2013  Sylvain Philip
@@ -19,6 +16,8 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <assert.h>
+#include <stdio.h>
 #include <string.h>
 #include "types.h"
 #include "tt.h"

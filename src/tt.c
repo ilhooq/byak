@@ -1,6 +1,3 @@
-
-#include <assert.h>
-#include <stdlib.h>
 /**
 * Byak, a UCI chess engine.
 * Copyright (C) 2013  Sylvain Philip
@@ -19,6 +16,8 @@
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
+#include <assert.h>
+#include <stdlib.h>
 #include "tt.h"
 #include "prng.h"
 
@@ -26,7 +25,6 @@ Zobrist zobrist;
 
 static TranspositionTable *tt;
 static int tt_size;
-
 
 int tt_setsize(int size) 
 {
