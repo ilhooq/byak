@@ -26,6 +26,7 @@
 #include <stdio.h>
 #include <stdlib.h> 
 #include <string.h>
+#include "bitboard.h"
 #include "tt.h"
 #include "position.h"
 #include "search.h"
@@ -37,7 +38,7 @@ static void uci_go(char * token)
 	/* Linux - Unix */
 	pthread_t SearchThread;
 	pthread_create(&SearchThread, NULL, search_start, NULL);
-	/* Don't need to call pthread_join() as the thread  never calls pthread_exit() */
+	/* Don't need to call pthread_join() as the thread never calls pthread_exit() */
 	#else
 	/* windows and Mingw */
 	HANDLE SearchThread;
@@ -52,6 +53,88 @@ static void uci_go(char * token)
 
 		CloseHandle(SearchThread);
 	#endif
+}
+
+static Move uci_prepare_move(U64 from, U64 to, Piece promotion )
+{
+	Move move;
+	move.from = bitboard_bitScanForward(from);
+	move.to = bitboard_bitScanForward(to);
+	move.capture = 0;
+	move.type = NORMAL;
+	move.promoted_piece = NONE_PIECE;
+	move.captured_piece = NONE_PIECE;
+	move.castling_rights = 0;
+	move.ep = NONE_SQUARE;
+
+	/* Check castling */
+	if ((from & pos.bb_pieces[K]) && 
+		(move.from == e1 && (move.to == g1 || move.to == c1))) {
+		move.type = CASTLE;
+	}
+	if ((from & pos.bb_pieces[k]) && 
+		(move.from == e8 && (move.to == g8 || move.to == c8))) {
+		move.type = CASTLE;
+	}
+	/* check promotion */
+	if (promotion != NONE_PIECE) {
+		move.type = PROMOTION;
+		move.promoted_piece = promotion + pos.side;
+	}
+	/* check capture */
+	if (pos.bb_occupied & to) {
+		move.capture = 1;
+	}
+
+	if (from & pos.bb_pieces[P + pos.side]) {
+		/* check double pawn*/
+		if (abs(move.from - move.to) == 16) {
+			move.type = PAWN_DOUBLE;
+		}
+		/* check enpassant */
+		if (!move.capture && 
+			(abs(move.from - move.to) == 9 || abs(move.from - move.to) == 7)) {
+			move.capture = 1;
+			move.type = ENPASSANT;
+		}
+	}
+	return move;
+}
+
+
+static void uci_parse_moves(const char * moves)
+{
+	U64 from = EMPTY;
+	U64 to = EMPTY;
+	Square promotion = NONE_PIECE;
+
+	while (moves[0]) {
+		if ((moves[0] >= 'a') && (moves[0] <= 'h')) {
+
+			from = bitboard_algToBin(moves);
+			to = bitboard_algToBin(moves+2);
+
+			/* check for promotion */
+			if (moves[4] != ' ') {
+				switch(moves[4]) {
+					case 'q': promotion = Q; moves++; break;
+					case 'r': promotion = R; moves++; break;
+					case 'b': promotion = B; moves++; break;
+					case 'n': promotion = N; moves++; break;
+				}
+			}
+
+			Move move = uci_prepare_move(from, to, promotion);
+			// It still a bug on win32 : move.capture == 1 when there is no capture 
+			// move_display(&move);
+			position_makeMove(&move);
+
+			/* Go to next move */
+			moves += 4;
+		} else {
+			moves++;
+		}
+	}
 }
 
 void uci_exec(char * token)
@@ -90,17 +173,18 @@ void uci_exec(char * token)
 	}
 
 	if (!strncmp(token, "position", 8)) {
-		//position [fen | startpos] [moves ...]
+		/* position [fen | startpos] [moves ...] */
 
 		if (!strncmp(token,"position fen",12)) {
 			position_fromFen(token + 13);
 		} else {
 			position_fromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 		}
-		/*
+
 		char * moves = strstr(token, "moves");
-		if (moves) algebraic_moves(moves+6);
-		*/
+		if (moves) {
+			uci_parse_moves(moves+6);
+		}
 	}
 	
 	if (!strncmp(token, "go", 2)) {
@@ -125,6 +209,12 @@ void uci_exec(char * token)
 
 	if (!strcmp(token, "quit")) {
 		exit(EXIT_SUCCESS);
+	}
+
+	/* Not UCI protocol */
+
+	if (!strcmp(token, "display")) {
+		position_display();
 	}
 }
 
