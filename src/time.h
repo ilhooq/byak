@@ -15,26 +15,31 @@
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
+ 
+#ifndef TIME_H
+#define TIME_H
 
-#ifndef SEARCH_H
-#define SEARCH_H
+#if !defined(_WIN32) && !defined(_WIN64)
 
-typedef struct {
-	int time[2];
-	int time_start;
-	int time_used;
-	int movetime;
-	int my_side;
-	int stop;
-	int nodes;
-} SearchInfos;
+/* Linux - Unix */
+#include <sys/time.h>
+/**
+ Get timestamp in ms
+**/
+static int GetTickCount() 
+{
+	struct timeval t;
+	gettimeofday(&t, NULL);
+	return t.tv_sec * 1000 + t.tv_usec / 1000;
+}
 
-void* search_start(void* data);
-void search_stop();
-void search_iterate();
-int search_root(int alpha, int beta, U8 depth);
-void search_root_negamax(int depth);
-int search_negamax(int depth, int ply);
-int search_alphaBeta(int alpha, int beta, int depth, int ply);
-int search_quiesce(int alpha, int beta);
+#else
+
+/* windows and Mingw */
+#include <windows.h>
+
+#endif
+
+#define GET_TIME() ((int)(GetTickCount()))
+
 #endif

@@ -33,11 +33,29 @@
 
 static void uci_go(char * token)
 {
-	// search_start();
+	char * subtoken = NULL;
+	SearchInfos infos;
+
+	infos.time[WHITE] = 0;
+	infos.time[BLACK] = 0;
+
+	if (subtoken = strstr(token, "wtime")) {
+		infos.time[WHITE] = atoi(subtoken+6);
+	}
+
+	if (subtoken = strstr(token, "btime")) {
+		infos.time[BLACK] = atoi(subtoken+6);
+	}
+
+	if (subtoken = strstr(token, "movestogo")) {
+		int movestogo = atoi(subtoken+10);
+		infos.movetime = infos.time[pos.side] / movestogo;
+	}
+
 	#if !defined(_WIN32) && !defined(_WIN64)
 	/* Linux - Unix */
 	pthread_t SearchThread;
-	pthread_create(&SearchThread, NULL, search_start, NULL);
+	pthread_create(&SearchThread, NULL, search_start, &infos);
 	/* Don't need to call pthread_join() as the thread never calls pthread_exit() */
 	#else
 	/* windows and Mingw */
@@ -47,7 +65,7 @@ static void uci_go(char * token)
 		NULL,         // default security attributes
 		0,            // use default stack size  
 		(LPTHREAD_START_ROUTINE) search_start, // thread function name
-		NULL,         // argument to thread function 
+		&infos,       // argument to thread function 
 		0,            // use default creation flags 
 		&threadId);   // returns the thread identifier
 

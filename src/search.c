@@ -25,6 +25,7 @@
 #include "position.h"
 #include "search.h"
 #include "eval.h"
+#include "time.h"
 
 
 #define MAX_DEPTH 32
@@ -40,11 +41,7 @@ Move pv[MAX_DEPTH][MAX_DEPTH];
 
 int pv_length[MAX_DEPTH];
 
-static struct s_searchState {
-	int stop;
-	int nodes;
-} sState;
-
+static SearchInfos infos;
 
 static void _updatePV(Move * mv, int ply)
 {
@@ -136,11 +133,37 @@ static void sortMoves(Move * movelist, U8 listlen, int ply)
 	*/
 }
 
+static void timeControl()
+{
+	/*
+	time_used = GET_TIME() - time_start
+	timeleft = movetime - time_used;
+
+	if (time_used > timeleft) we stop the search now
+
+	Simplifying the equations:
+	time_used > timeleft = timeused > (movetime - time_used) = (time_used * 2) > movetime
+
+	*/
+	infos.time_used = GET_TIME() - infos.time_start;
+
+	if ((infos.time_used) * 2 > infos.movetime) {
+		infos.stop = 1;
+	}
+}
 
 
 void* search_start(void* data)
 {
-	sState.stop = 0;
+	SearchInfos * pInfos = data;
+	// Dereference pointer
+	infos = *pInfos;
+
+	infos.time_start = GET_TIME();
+	infos.my_side = pos.side;
+	infos.stop = 0;
+
+	// printf("movetime : %i\n", infos.movetime);
 
 	search_iterate();
 	// search_root_negamax(4);
@@ -156,7 +179,7 @@ void* search_start(void* data)
 
 void search_stop()
 {
-	sState.stop = 1;
+	infos.stop = 1;
 }
 
 void search_iterate()
@@ -166,10 +189,9 @@ void search_iterate()
 	memset(pv_length, 0, sizeof(pv_length));
 
 	for (depth=1; depth <= MAX_DEPTH; depth++) {
-		
-		if (depth == 7) break;
-		
-		if (sState.stop) break;
+
+		// if (depth == 7) break;
+		if (infos.stop) break;
 
 		search_root(-INFINITY, INFINITY, depth);
 	}
@@ -184,6 +206,7 @@ int search_root(int alpha, int beta, U8 depth)
 	// if (depth > 2)
 	sortMoves(movelist, listLen, 0);
 	int i;
+	
 
 	for (i=0; i < listLen; i++)  {
 		position_makeMove(&movelist[i]);
@@ -199,6 +222,7 @@ int search_root(int alpha, int beta, U8 depth)
 			_updatePV(&movelist[i], 0);
 			_printPV(score, depth);
 		}
+		if (infos.stop) break;
 	}
 
 	return alpha;
@@ -207,15 +231,17 @@ int search_root(int alpha, int beta, U8 depth)
 
 int search_alphaBeta(int alpha, int beta, int depth, int ply)
 {
+	timeControl();
+
+	if (infos.stop) return 0;
+
 	if (depth == 0) {
 		return search_quiesce(alpha, beta);
 	}
-	
+
 	U16 tt_flag = TT_ALPHA;
 
-	sState.nodes++;
-
-	if (sState.stop) return 0;
+	infos.nodes++;
 
 	int tt_val = tt_probe(pos.hash, alpha, beta, depth);
 
@@ -250,6 +276,7 @@ int search_alphaBeta(int alpha, int beta, int depth, int ply)
 			tt_flag = TT_EXACT;
 			_updatePV(&movelist[i], ply);
 		}
+
 	}
 
 	tt_save( pos.hash, alpha, depth, tt_flag);
