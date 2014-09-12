@@ -37,14 +37,14 @@ OPTI = -O3
 # Gprof
 # OPTI += -pg
 
-EXEC = chess_engine
+EXEC = byak
 SRC  = $(wildcard *.c)
-OBJ  = $(SRC:%.c=bin/%.o)
+OBJ  = $(SRC:%.c=%.o)
 
-all : bin/$(EXEC)
+all : $(EXEC)
 
 # linking
-bin/$(EXEC) : $(OBJ)
+$(EXEC) : $(OBJ)
 	$(CXX) -o $@ $(LANG) $(WARN) $(OPTI) $(DIR) $(OBJ) -lpthread 
 
 # compilation
@@ -52,4 +52,4 @@ bin/%.o : %.c
 	$(CXX) -c -o $@ $< $(LANG) $(WARN) $(OPTI) $(DIR)
 
 clean :
-	rm -f -v bin/*.o bin/$(EXEC)
+	rm -f -v *.o $(EXEC)
