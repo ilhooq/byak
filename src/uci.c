@@ -150,7 +150,6 @@ void uci_exec(char * token)
 	}
 
 	if (!strcmp(token, "isready")) {
-		position_init();
 		printf("readyok\n");
 	}
 
@@ -174,6 +173,7 @@ void uci_exec(char * token)
 
 	if (!strncmp(token, "position", 8)) {
 		/* position [fen | startpos] [moves ...] */
+		position_init();
 
 		if (!strncmp(token,"position fen",12)) {
 			position_fromFen(token + 13);
