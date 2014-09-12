@@ -33,7 +33,6 @@ void eval_init(U8 side)
 
 int eval_position()
 {
-	
 	/**
 	* Note! In order for negaMax to work,  the Static Evaluation 
 	* function must return a score relative to the side to being 
@@ -43,24 +42,20 @@ int eval_position()
 	* //where who2move = 1 for white, and who2move = -1 for black).
 	*/
 	int who2move = (pos.side == WHITE) ? 1 : -1;
+	int material[10];
+	Piece i;
+	for (i=0; i < 10; i++) {
+		material[i] = COUNT_MATERIAL(i);
+	}
 
-/*
-	if (pos.checkmated) {
-		if (pos.side == WHITE) {
-			return -INFINITY-1;
-		}
-		return INFINITY+1;
-	}*/
-
-	
-	// Material eval;
+	// Material eval in centipawn;
 	int score = 0;
 
-	score += 10 * (COUNT_MATERIAL(P) - COUNT_MATERIAL(p));
-	score += 90 * (COUNT_MATERIAL(Q) - COUNT_MATERIAL(q));
-	score += 30 * (COUNT_MATERIAL(N) - COUNT_MATERIAL(n));
-	score += 30 * (COUNT_MATERIAL(B) - COUNT_MATERIAL(b));
-	score += 60 * (COUNT_MATERIAL(R) - COUNT_MATERIAL(r));
+	score += 100 * (material[P] - material[p]);
+	score += 900 * (material[Q] - material[q]);
+	score += 300 * (material[N] - material[n]);
+	score += 300 * (material[B] - material[b]);
+	score += 600 * (material[R] - material[r]);
 
 	return score * who2move;
 }
