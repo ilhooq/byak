@@ -125,7 +125,9 @@ void* search_start(void* data)
 
 	search_iterate();
 	// search_root_negamax(4);
-	uci_print_bestmove(&infos.pv[0][0]);
+	Move bestMove = infos.pv[0][0];
+
+	uci_print_bestmove(&bestMove);
 
 	return NULL;
 
@@ -174,7 +176,7 @@ int search_root(int alpha, int beta, int depth)
 			_updatePV(&movelist[i], 0);
 			uci_print_pv(score, depth, &infos);
 		}
-		if (infos.stop) break;
+
 	}
 
 	return alpha;
@@ -184,8 +186,6 @@ int search_root(int alpha, int beta, int depth)
 int search_alphaBeta(int alpha, int beta, int depth, int ply)
 {
 	timeControl();
-
-	if (infos.stop) return 0;
 
 	if (depth == 0) {
 		return search_quiesce(alpha, beta);
@@ -198,6 +198,8 @@ int search_alphaBeta(int alpha, int beta, int depth, int ply)
 	int tt_val = tt_probe(pos.hash, alpha, beta, depth);
 
 	if (tt_val) return tt_val;
+
+	if (infos.stop) return 0;
 
 	Move movelist[256];
 	int i, score;
