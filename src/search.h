@@ -40,7 +40,7 @@ Move ** search_get_pv();
 int * search_get_pv_length();
 
 void search_iterate();
-int search_root(int alpha, int beta, U8 depth);
+int search_root(int alpha, int beta, int depth);
 void search_root_negamax(int depth);
 int search_negamax(int depth, int ply);
 int search_alphaBeta(int alpha, int beta, int depth, int ply);

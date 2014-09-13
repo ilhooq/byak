@@ -41,7 +41,7 @@ typedef struct {
 	U64 attacks_from[64];
 	U64 attacks_to[64];
 	// Move movelist[256];
-	U8 movelistcount;
+	int movelistcount;
 
 	U64 pinned; // Pinned squares
 	U64 pinner[64];
@@ -94,7 +94,7 @@ INLINE void position_addAttack(U64 from_square, U64 to_square);
 /**
  * Generate all legal moves
  */
-U8 position_generateMoves(Move *movelist);
+int position_generateMoves(Move *movelist);
 
 void position_generateAttacks();
 

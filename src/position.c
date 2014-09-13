@@ -37,7 +37,7 @@
 
 Position pos;
 
-static U8 movelistcount;
+static int movelistcount;
 
 void position_init()
 {
@@ -503,7 +503,7 @@ TypeMove type, char capture, Piece promoted_piece, Piece captured_piece)
 }
 
 
-U8 position_generateMoves(Move *movelist)
+int position_generateMoves(Move *movelist)
 {
 	int otherSide = 1 ^ pos.side;
 	U64 king = pos.bb_pieces[K + pos.side];

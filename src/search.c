@@ -66,7 +66,7 @@ static void _updatePV(Move * mv, int ply)
 
 }
 
-static void sortMoves(Move * movelist, U8 listlen, int ply)
+static void sortMoves(Move * movelist, int listlen, int ply)
 {
 	int i;
 	Move temp;
@@ -125,7 +125,6 @@ void* search_start(void* data)
 
 	search_iterate();
 	// search_root_negamax(4);
-
 	uci_print_bestmove(&infos.pv[0][0]);
 
 	return NULL;
@@ -139,7 +138,7 @@ void search_stop()
 
 void search_iterate()
 {
-	U8 depth;
+	int depth;
 
 	for (depth=1; depth <= MAX_DEPTH; depth++) {
 
@@ -150,12 +149,12 @@ void search_iterate()
 	}
 }
 
-int search_root(int alpha, int beta, U8 depth)
+int search_root(int alpha, int beta, int depth)
 {
 	Move movelist[256];
 	int score;
 
-	U8 listLen = position_generateMoves(movelist);
+	int listLen = position_generateMoves(movelist);
 	// if (depth > 2)
 	sortMoves(movelist, listLen, 0);
 	int i;
@@ -202,7 +201,7 @@ int search_alphaBeta(int alpha, int beta, int depth, int ply)
 
 	Move movelist[256];
 	int i, score;
-	U8 listLen = position_generateMoves(movelist);
+	int listLen = position_generateMoves(movelist);
 	// if (depth > 2)
 	// sortMoves(movelist, listLen, ply);
 
@@ -248,7 +247,7 @@ void search_root_negamax(int depth)
 	int max = -INFINITY;
 
 	Move movelist[256];
-	U8 listLen = position_generateMoves(movelist);
+	int listLen = position_generateMoves(movelist);
 	Move moveToMake;
 
 	for (i=0; i < listLen; i++) {
@@ -277,7 +276,7 @@ int search_negamax(int depth, int ply)
 	int i, score;
 
 	Move movelist[256];
-	U8 listLen = position_generateMoves(movelist);
+	int listLen = position_generateMoves(movelist);
 
 	for (i=0; i < listLen; i++) {
 		position_makeMove(&movelist[i]);
