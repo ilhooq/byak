@@ -39,12 +39,26 @@ int main (int argc, char ** argv) {
 	tt_init(144000000);
 	position_init();
 
-	// testSearch("r1bqkbnr/p1p2ppp/1pnp4/1B2p3/3PP3/5N2/PPP2PPP/RNBQK2R w KQkq - 0 5", 4);
-	// testSearch("6k1/1R6/8/R7/8/8/8/4K3 w - - 0 1", 4);
-	// testSearch("5K2/1r6/8/8/r7/3k4/8/8 b - - 0 1", 4);
-	// test_perftSuite2();
-	// return 0;
-	
+	int i;
+
+	for (i=0; i < argc; i++) {
+		if (!strcmp(argv[i], "testsuite")) {
+			testSuite();
+			return 0;
+		}
+		if (!strcmp(argv[i], "testsearch")) {
+			/* Command to test a search against a fen string.
+			   For instance :
+			  ./byak testsearch "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1"
+			*/
+			if (i+1 < argc) {
+				char * fen = argv[i+1];
+				fen++;
+				testSearch(fen);
+			}
+			return 0;
+		}
+	}
 
 	/* deactivate buffering */
 	setvbuf(stdin,  NULL, _IONBF, 0);

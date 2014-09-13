@@ -65,11 +65,15 @@ void testSuite()
 	test_linkedList();
 }
 
-void testSearch(const char *fen, int depth)
+void testSearch(const char *fen)
 {
+	position_init();
 	position_fromFen(fen);
-	position_display();
-	// search_start();
+	SearchInfos infos;
+	infos.time[WHITE] = 300000;
+	infos.time[BLACK] = 300000;
+	infos.movetime = infos.time[pos.side] / 40;
+	search_start(&infos);
 }
 
 void testTT()

@@ -40,5 +40,5 @@ void test_perftSuite();
 void test_perftSuite2();
 void test_castle();
 void testTT();
-void testSearch(const char *fen, int depth);
+void testSearch(const char *fen);
 #endif
