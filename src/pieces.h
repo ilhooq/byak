@@ -35,4 +35,25 @@ r,  // Any black rooks
 NONE_PIECE
 } Piece;
 
+static char get_piece_letter(Piece piece)
+{
+	char c = ' ';
+	switch (piece) {
+		case P : c = 'P'; break;
+		case K : c = 'K'; break;
+		case Q : c = 'Q'; break;
+		case N : c = 'N'; break;
+		case B : c = 'B'; break;
+		case R : c = 'R'; break;
+		case p : c = 'p'; break;
+		case k : c = 'k'; break;
+		case q : c = 'q'; break;
+		case n : c = 'n'; break;
+		case b : c = 'b'; break;
+		case r : c = 'r'; break;
+		case NONE_PIECE : c = '0';
+	}
+	return c;
+}
+
 #endif

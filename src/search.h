@@ -19,6 +19,8 @@
 #ifndef SEARCH_H
 #define SEARCH_H
 
+#define MAX_DEPTH 32
+
 typedef struct {
 	int time[2];
 	int time_start;
@@ -27,14 +29,28 @@ typedef struct {
 	int my_side;
 	int stop;
 	int nodes;
+	Move pv[MAX_DEPTH][MAX_DEPTH];
+	int pv_length[MAX_DEPTH];
 } SearchInfos;
 
 void* search_start(void* data);
 void search_stop();
+
+Move ** search_get_pv();
+int * search_get_pv_length();
+
 void search_iterate();
 int search_root(int alpha, int beta, U8 depth);
 void search_root_negamax(int depth);
 int search_negamax(int depth, int ply);
 int search_alphaBeta(int alpha, int beta, int depth, int ply);
 int search_quiesce(int alpha, int beta);
+
+/* 
+The total size of the triangular array in moves 
+can be calculated by the Triangular number :
+(MAX_DEPTH*MAX_DEPTH + MAX_DEPTH)/2
+*/
+// Move pv[528];
+
 #endif

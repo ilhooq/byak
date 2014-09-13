@@ -26,20 +26,9 @@
 #include "search.h"
 #include "eval.h"
 #include "time.h"
+#include "uci.h"
 
 
-#define MAX_DEPTH 32
-
-/* 
-The total size of the triangular array in moves 
-can be calculated by the Triangular number :
-(MAX_DEPTH*MAX_DEPTH + MAX_DEPTH)/2
-*/
-// Move pv[528];
-
-Move pv[MAX_DEPTH][MAX_DEPTH];
-
-int pv_length[MAX_DEPTH];
 
 static SearchInfos infos;
 
@@ -52,63 +41,29 @@ static void _updatePV(Move * mv, int ply)
 	assert(pvNextIndex >= 0 && pvNextIndex <= 528);
 
 	pv_array[pvIndex] = *mv;
-	int pv_length;
+	int infos.pv_length;
 	Move * pTarget = pv_array + pvIndex + 1;
 	Move * pSource = pv_array + pvNextIndex;
-	for (pv_length = MAX_DEPTH - ply - 1; pv_length >=0; pv_length--) {
+	for (infos.pv_length = MAX_DEPTH - ply - 1; infos.pv_length >=0; infos.pv_length--) {
 		*pTarget++ = *pSource++;
 	}
 	*/
 
 	int j;
 
-	if (!pv_length[ply]) {
-		pv_length[ply] = ply;
+	if (!infos.pv_length[ply]) {
+		infos.pv_length[ply] = ply;
 	}
 
-	pv[ply][ply] = *mv;
-	for (j = ply + 1; j < pv_length[ply + 1]; ++j)
-		pv[ply][j] = pv[ply + 1][j];
+	infos.pv[ply][ply] = *mv;
+	for (j = ply + 1; j < infos.pv_length[ply + 1]; ++j)
+		infos.pv[ply][j] = infos.pv[ply + 1][j];
 
-	if (pv_length[ply + 1])
-		pv_length[ply] = pv_length[ply + 1];
+	if (infos.pv_length[ply + 1])
+		infos.pv_length[ply] = infos.pv_length[ply + 1];
 	else if (!ply)
-		pv_length[0] = 1;
+		infos.pv_length[0] = 1;
 
-}
-
-
-static void _printPV(int score, int depth)
-{
-	/*
-	int ply, pvIndex;
-	for (ply=0; ply < MAX_DEPTH; ply++) {
-		pvIndex = 0.5 * ply * ((2*MAX_DEPTH) + 1 - ply);
-		if (pv_array[pvIndex].from == 0 && pv_array[pvIndex].to == 0) {
-			break;
-		}
-		move_displayAlg(&pv_array[pvIndex]);
-		printf(" ");
-	}
-	*/
-	
-	printf("info depth %i score cp %i", depth, score);
-
-	printf(" pv ");
-
-	int j;
-	for (j = 0; j < pv_length[0]; ++j) {
-		move_displayUCI(&pv[0][j]);
-		printf(" ");
-	}
-	printf("\n");
-}
-
-static void printCurmove(Move * move, int depth, int mvNbr)
-{
-	printf("info depth %d currmove ", depth);
-	move_displayUCI(move);
-	printf(" currmovenumber %d\n",  mvNbr);
 }
 
 static void sortMoves(Move * movelist, U8 listlen, int ply)
@@ -117,8 +72,8 @@ static void sortMoves(Move * movelist, U8 listlen, int ply)
 	Move temp;
 	for (i=0; i < listlen; i++)  {
 		// Si le coup de la liste correspond au premier coup de la PV
-		if (movelist[i].from == pv[0][ply].from &&
-			movelist[i].to == pv[0][ply].to) {
+		if (movelist[i].from == infos.pv[0][ply].from &&
+			movelist[i].to == infos.pv[0][ply].to) {
 			// On le déplace en premier
 			temp = movelist[0];
 			movelist[0] = movelist[i];
@@ -162,20 +117,20 @@ void* search_start(void* data)
 	infos.time_start = GET_TIME();
 	infos.my_side = pos.side;
 	infos.stop = 0;
+	
+	memset(infos.pv, 0, sizeof(infos.pv));
+	memset(infos.pv_length, 0, sizeof(infos.pv_length));
 
 	// printf("movetime : %i\n", infos.movetime);
 
 	search_iterate();
 	// search_root_negamax(4);
 
-	printf("bestmove ");
-	move_displayUCI(&pv[0][0]);
-	printf("\n");
+	uci_print_bestmove(&infos.pv[0][0]);
 
 	return NULL;
 
 }
-
 
 void search_stop()
 {
@@ -185,8 +140,6 @@ void search_stop()
 void search_iterate()
 {
 	U8 depth;
-	memset(pv, 0, sizeof(pv));
-	memset(pv_length, 0, sizeof(pv_length));
 
 	for (depth=1; depth <= MAX_DEPTH; depth++) {
 
@@ -213,14 +166,14 @@ int search_root(int alpha, int beta, U8 depth)
 
 		score = -search_alphaBeta(-beta, -alpha, depth, 1);
 
-		printCurmove(&movelist[i],depth, i+1);
+		uci_print_currmove(&movelist[i],depth, i+1);
 
 		position_undoMove(&movelist[i]);
 
 		if (score > alpha) {
 			alpha = score;
 			_updatePV(&movelist[i], 0);
-			_printPV(score, depth);
+			uci_print_pv(score, depth, &infos);
 		}
 		if (infos.stop) break;
 	}
@@ -307,7 +260,7 @@ void search_root_negamax(int depth)
 		if (score > max) {
 			max = score;
 			_updatePV(&movelist[i], 0);
-			_printPV(score, depth);
+			// uci_print_pv(score, depth);
 			moveToMake = movelist[i];
 		}
 	}

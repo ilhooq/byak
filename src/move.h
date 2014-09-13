@@ -45,5 +45,4 @@ Move *move_create(U64 from_square, U64 to_square, TypeMove type,
 
 void move_display(Move *move);
 void move_displayAlg(Move *move);
-void move_displayUCI(Move *move);
 #endif

@@ -29,6 +29,7 @@
 #include "bitboard.h"
 #include "tt.h"
 #include "position.h"
+#include "move.h"
 #include "search.h"
 
 static void uci_go(char * token)
@@ -234,6 +235,42 @@ void uci_exec(char * token)
 	if (!strcmp(token, "display")) {
 		position_display();
 	}
+}
+
+void uci_print_move(Move *move)
+{
+	printf("%s%s%c", bitboard_binToAlg(SQ64(move->from)),
+		bitboard_binToAlg(SQ64(move->to)),
+		(move->type == PROMOTION) ? get_piece_letter(move->promoted_piece) : ' ');
+}
+
+void uci_print_currmove(Move * move, int depth, int mvNbr)
+{
+	printf("info depth %d currmove ", depth);
+	uci_print_move(move);
+	printf(" currmovenumber %d\n",  mvNbr);
+}
+
+void uci_print_pv(int score, int depth, SearchInfos * infos)
+{
+	printf("info depth %i score cp %i", depth, score);
+
+	printf(" pv ");
+
+	int j;
+	for (j = 0; j < infos->pv_length[0]; ++j) {
+		uci_print_move(&infos->pv[0][j]);
+		printf(" ");
+	}
+
+	printf("\n");
+}
+
+void uci_print_bestmove(Move * move)
+{
+	printf("bestmove ");
+	uci_print_move(move);
+	printf("\n");
 }
 
 

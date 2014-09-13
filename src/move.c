@@ -23,27 +23,6 @@
 #include "bitboard.h"
 #include "position.h"
 
-static char get_piece_letter(Piece piece)
-{
-	char c = ' ';
-	switch (piece) {
-		case P : c = 'P'; break;
-		case K : c = 'K'; break;
-		case Q : c = 'Q'; break;
-		case N : c = 'N'; break;
-		case B : c = 'B'; break;
-		case R : c = 'R'; break;
-		case p : c = 'p'; break;
-		case k : c = 'k'; break;
-		case q : c = 'q'; break;
-		case n : c = 'n'; break;
-		case b : c = 'b'; break;
-		case r : c = 'r'; break;
-		case NONE_PIECE : c = '0';
-	}
-	return c;
-} 
-
 Move *move_create(U64 from_square, U64 to_square, TypeMove type, 
 			char capture, Piece promoted_piece, Piece captured_piece)
 {
@@ -85,13 +64,6 @@ void move_displayAlg(Move *move)
 {
 	printf("%s%c%s%c", bitboard_binToAlg(SQ64(move->from)),
 						move->capture ? 'x' : '-',
-						bitboard_binToAlg(SQ64(move->to)),
-						(move->type == PROMOTION) ? get_piece_letter(move->promoted_piece) : ' ');
-}
-
-void move_displayUCI(Move *move)
-{
-	printf("%s%s%c", bitboard_binToAlg(SQ64(move->from)),
 						bitboard_binToAlg(SQ64(move->to)),
 						(move->type == PROMOTION) ? get_piece_letter(move->promoted_piece) : ' ');
 }
