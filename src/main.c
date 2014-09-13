@@ -42,10 +42,12 @@ int main (int argc, char ** argv) {
 	int i;
 
 	for (i=0; i < argc; i++) {
+
 		if (!strcmp(argv[i], "testsuite")) {
 			testSuite();
 			return 0;
 		}
+
 		if (!strcmp(argv[i], "testsearch")) {
 			/* Command to test a search against a fen string.
 			   For instance :
@@ -53,7 +55,6 @@ int main (int argc, char ** argv) {
 			*/
 			if (i+1 < argc) {
 				char * fen = argv[i+1];
-				fen++;
 				testSearch(fen);
 			}
 			return 0;
