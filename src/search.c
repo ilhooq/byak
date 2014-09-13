@@ -1,17 +1,17 @@
 /**
 * Byak, a UCI chess engine.
 * Copyright (C) 2013  Sylvain Philip
-* 
+*
 * This program is free software; you can redistribute it and/or
 * modify it under the terms of the GNU General Public License
 * as published by the Free Software Foundation; either version 2
 * of the License, or (at your option) any later version.
-* 
+*
 * This program is distributed in the hope that it will be useful,
 * but WITHOUT ANY WARRANTY; without even the implied warranty of
 * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 * GNU General Public License for more details.
-* 
+*
 * You should have received a copy of the GNU General Public License
 * along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
@@ -27,8 +27,6 @@
 #include "eval.h"
 #include "time.h"
 #include "uci.h"
-
-
 
 static SearchInfos infos;
 
@@ -71,21 +69,16 @@ static void sortMoves(Move * movelist, int listlen, int ply)
 	int i;
 	Move temp;
 	for (i=0; i < listlen; i++)  {
-		// Si le coup de la liste correspond au premier coup de la PV
+		// If the move in the list matches the first move in the PV...
 		if (movelist[i].from == infos.pv[0][ply].from &&
 			movelist[i].to == infos.pv[0][ply].to) {
-			// On le déplace en premier
+			// ... we move it on the top of the stack.
 			temp = movelist[0];
 			movelist[0] = movelist[i];
 			movelist[i] = temp;
 			break;
 		}
 	}
-	/*
-	Move temp = m[high];
-	m[high] = m[current];
-	m[current] = temp;
-	*/
 }
 
 static void timeControl()
@@ -117,20 +110,17 @@ void* search_start(void* data)
 	infos.time_start = GET_TIME();
 	infos.my_side = pos.side;
 	infos.stop = 0;
-	
+
 	memset(infos.pv, 0, sizeof(infos.pv));
 	memset(infos.pv_length, 0, sizeof(infos.pv_length));
 
-	// printf("movetime : %i\n", infos.movetime);
-
 	search_iterate();
-	// search_root_negamax(4);
+
 	Move bestMove = infos.pv[0][0];
 
 	uci_print_bestmove(&bestMove);
 
 	return NULL;
-
 }
 
 void search_stop()
@@ -144,7 +134,6 @@ void search_iterate()
 
 	for (depth=1; depth <= MAX_DEPTH; depth++) {
 
-		// if (depth == 7) break;
 		if (infos.stop) break;
 
 		search_root(-INFINITY, INFINITY, depth);
@@ -157,10 +146,9 @@ int search_root(int alpha, int beta, int depth)
 	int score;
 
 	int listLen = position_generateMoves(movelist);
-	// if (depth > 2)
+
 	sortMoves(movelist, listLen, 0);
 	int i;
-	
 
 	for (i=0; i < listLen; i++)  {
 		position_makeMove(&movelist[i]);
@@ -204,8 +192,6 @@ int search_alphaBeta(int alpha, int beta, int depth, int ply)
 	Move movelist[256];
 	int i, score;
 	int listLen = position_generateMoves(movelist);
-	// if (depth > 2)
-	// sortMoves(movelist, listLen, ply);
 
 	if (!listLen) {
 		score = (pos.side == WHITE) ? INFINITY : -INFINITY;
@@ -250,10 +236,9 @@ void search_root_negamax(int depth)
 
 	Move movelist[256];
 	int listLen = position_generateMoves(movelist);
-	Move moveToMake;
 
 	for (i=0; i < listLen; i++) {
-		
+
 		position_makeMove(&movelist[i]);
 		score = -search_negamax(depth, 1);
 		position_undoMove(&movelist[i]);
@@ -261,12 +246,9 @@ void search_root_negamax(int depth)
 		if (score > max) {
 			max = score;
 			_updatePV(&movelist[i], 0);
-			// uci_print_pv(score, depth);
-			moveToMake = movelist[i];
+			uci_print_pv(score, depth,&infos);
 		}
 	}
-	move_displayAlg(&moveToMake);
-	printf("\nScore final : %i\n", max);
 }
 
 int search_negamax(int depth, int ply)
