@@ -42,13 +42,15 @@ int eval_position()
 	* //where who2move = 1 for white, and who2move = -1 for black).
 	*/
 	int who2move = (pos.side == WHITE) ? 1 : -1;
+
+	// Material eval in centipawn;
 	int score = 0;
 
-	score += 10 * (COUNT_MATERIAL(P) - COUNT_MATERIAL(p));
-	score += 90 * (COUNT_MATERIAL(Q) - COUNT_MATERIAL(q));
-	score += 30 * (COUNT_MATERIAL(N) - COUNT_MATERIAL(n));
-	score += 30 * (COUNT_MATERIAL(B) - COUNT_MATERIAL(b));
-	score += 60 * (COUNT_MATERIAL(R) - COUNT_MATERIAL(r));
+	score += 100 * (COUNT_MATERIAL(P) - COUNT_MATERIAL(p));
+	score += 900 * (COUNT_MATERIAL(Q) - COUNT_MATERIAL(q));
+	score += 300 * (COUNT_MATERIAL(N) - COUNT_MATERIAL(n));
+	score += 300 * (COUNT_MATERIAL(B) - COUNT_MATERIAL(b));
+	score += 600 * (COUNT_MATERIAL(R) - COUNT_MATERIAL(r));
 
 	return score * who2move;
 }
