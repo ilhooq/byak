@@ -171,7 +171,7 @@ int search_root(int alpha, int beta, int depth)
 
 		position_undoMove(&movelist[i]);
 
-		if (score > alpha) {
+		if (score > alpha && !infos.stop) {
 			alpha = score;
 			_updatePV(&movelist[i], 0);
 			uci_print_pv(score, depth, &infos);
@@ -187,6 +187,8 @@ int search_alphaBeta(int alpha, int beta, int depth, int ply)
 {
 	timeControl();
 
+	if (infos.stop) return 0;
+
 	if (depth == 0) {
 		return search_quiesce(alpha, beta);
 	}
@@ -198,8 +200,6 @@ int search_alphaBeta(int alpha, int beta, int depth, int ply)
 	int tt_val = tt_probe(pos.hash, alpha, beta, depth);
 
 	if (tt_val) return tt_val;
-
-	if (infos.stop) return 0;
 
 	Move movelist[256];
 	int i, score;
