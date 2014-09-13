@@ -40,15 +40,15 @@ static void uci_go(char * token)
 	infos.time[WHITE] = 0;
 	infos.time[BLACK] = 0;
 
-	if (subtoken = strstr(token, "wtime")) {
+	if ((subtoken = strstr(token, "wtime"))) {
 		infos.time[WHITE] = atoi(subtoken+6);
 	}
 
-	if (subtoken = strstr(token, "btime")) {
+	if ((subtoken = strstr(token, "btime"))) {
 		infos.time[BLACK] = atoi(subtoken+6);
 	}
 
-	if (subtoken = strstr(token, "movestogo")) {
+	if ((subtoken = strstr(token, "movestogo"))) {
 		int movestogo = atoi(subtoken+10);
 		infos.movetime = infos.time[pos.side] / movestogo;
 	}
