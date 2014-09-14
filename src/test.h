@@ -19,7 +19,8 @@
 #ifndef TEST_H
 #define TEST_H
 
-void testSuite();
+void test_suite();
+void test_search(const char *fen);
 void test_kingMoves();
 void test_knightMoves();
 void test_bin2alg();
@@ -39,6 +40,4 @@ void test_divide(const char *fen, int depth);
 void test_perftSuite();
 void test_perftSuite2();
 void test_castle();
-void testTT();
-void testSearch(const char *fen);
 #endif

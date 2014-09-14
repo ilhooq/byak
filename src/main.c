@@ -44,7 +44,7 @@ int main (int argc, char ** argv) {
 	for (i=0; i < argc; i++) {
 
 		if (!strcmp(argv[i], "testsuite")) {
-			testSuite();
+			test_suite();
 			return 0;
 		}
 
@@ -55,7 +55,7 @@ int main (int argc, char ** argv) {
 			*/
 			if (i+1 < argc) {
 				char * fen = argv[i+1];
-				testSearch(fen);
+				test_search(fen);
 			}
 			return 0;
 		}
