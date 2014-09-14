@@ -60,6 +60,7 @@ endif
 ifeq ($(DEBUG-PROFILE), 1)
 	# Add Gprof support
 	CFLAGS += -pg
+	LDFLAGS += -pg
 	OPTI =
 endif
 
@@ -77,4 +78,4 @@ bin/%.o : %.c
 	$(CC) -c -o $@ $< $(WARN) $(OPTI) $(CFLAGS)
 
 clean :
-	rm -f -v *.o $(EXE) $(EXE).exe
+	rm -f -v *.o $(EXE) $(EXE).exe *.out
