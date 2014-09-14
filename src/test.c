@@ -20,7 +20,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <time.h>
 #include "bitboard.h"
 #include "magicmoves.h"
 #include "test.h"
@@ -29,6 +28,7 @@
 #include "move.h"
 #include "prng.h"
 #include "tt.h"
+#include "time.h"
 #include "search.h"
 
 void test_suite()
@@ -56,83 +56,6 @@ void test_search(const char *fen)
 	infos.time[BLACK] = 300000;
 	infos.movetime = infos.time[pos.side] / 40;
 	search_start(&infos);
-}
-
-void test_perftSuite()
-{
-	clock_t begin, end;
-	double time_spent, nodesPerSec = 0;
-	begin = clock();
-	U64 totalNodes = 0;
-
-	// Position 1
-	printf("--------- Position 1 -----------\n");
-	assert(test_perft("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 5) == 4865609) ;
-	totalNodes += 4865609;
-
-	// Position 2
-	printf("\n--------- Position 2 -----------\n");
-	assert(test_perft("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -", 4) == 4085603);
-	totalNodes += 4085603;
-
-	// Position 3
-	printf("\n--------- Position 3 -----------\n");
-	assert(test_perft("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -", 6) == 11030083);
-	totalNodes += 11030083;
-
-	// Position 4
-	printf("-\n-------- Position 4 -----------\n");
-	assert(test_perft("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 5) == 15833292);
-	totalNodes += 15833292;
-
-	// Position 5
-	printf("\n--------- Position 5 -----------\n");
-	assert(test_perft("rnbqkb1r/pp1p1ppp/2p5/4P3/2B5/8/PPP1NnPP/RNBQK2R w KQkq - 0 6", 3) == 53392);
-	totalNodes += 53392;
-
-	end = clock();
-	time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	nodesPerSec = totalNodes / time_spent;
-
-	printf("\n\n%f nodes/s -- Time Spent = %f\n", nodesPerSec, time_spent);
-}
-
-void test_perftSuite2()
-{
-	clock_t begin, end;
-	double time_spent, nodesPerSec = 0;
-	begin = clock();
-	U64 totalNodes = 0;
-
-	printf("--------- Position 1 -----------\n");
-	assert(test_perft("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1", 6) == 119060324) ;
-	totalNodes += 119060324;
-
-	// Position 2
-	printf("\n--------- Position 2 -----------\n");
-	assert(test_perft("r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -", 5) == 193690690);
-	totalNodes += 193690690;
-
-	// Position 3
-	printf("\n--------- Position 3 -----------\n");
-	assert(test_perft("8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - -", 7) == 178633661);
-	totalNodes += 178633661;
-
-	// Position 4
-	printf("-\n-------- Position 4 -----------\n");
-	assert(test_perft("r3k2r/Pppp1ppp/1b3nbN/nP6/BBP1P3/q4N2/Pp1P2PP/R2Q1RK1 w kq - 0 1", 6) == 706045033);
-	totalNodes += 706045033;
-
-	// Position 5
-	printf("\n--------- Position 5 -----------\n");
-	assert(test_perft("rnbqkb1r/pp1p1ppp/2p5/4P3/2B5/8/PPP1NnPP/RNBQK2R w KQkq - 0 6", 3) == 53392);
-	totalNodes += 53392;
-
-	end = clock();
-	time_spent = (double)(end - begin) / CLOCKS_PER_SEC;
-	nodesPerSec = totalNodes / time_spent;
-
-	printf("\n\n%f nodes/s -- Time Spent = %f\n", nodesPerSec, time_spent);
 }
 
 void test_castle()
@@ -185,15 +108,15 @@ void test_divide(const char *fen, int depth)
 	printf("\n\nNodes : %llu", ULL(nodes));
 }
 
-
-U64 test_perft(const char *fen, int depth)
+void test_perft(const char *fen, int depth)
 {
+	int start, timeused;
 	position_init();
 	position_fromFen(fen);
-	position_display();
+	start = GET_TIME();
 	U64 nodes = position_perft(depth);
-	printf("Depth %i : %llu nodes", depth, ULL(nodes));
-	return nodes;
+	timeused = GET_TIME() - start;
+	printf("depth:%i;time:%i;nodes:%llu\n", depth, timeused, ULL(nodes));
 }
 
 void test_move()

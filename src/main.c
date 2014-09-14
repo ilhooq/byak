@@ -32,7 +32,7 @@ Protocol protocol = DEFAULT;
 #define MAX_INPUT_SIZE 1024
 
 int main (int argc, char ** argv) {
-	printf("Chess Engine By Sylvain Philip\n");
+
 	bitboard_init();
 	prng_init(73);
 	/* 144MB */
@@ -59,7 +59,25 @@ int main (int argc, char ** argv) {
 			}
 			return 0;
 		}
+
+		if (!strcmp(argv[i], "perft")) {
+			/* Perft against a fen string.
+			   byak perft [fenstring] [depth]
+			   For instance :
+			  ./byak perft "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1" 3
+			*/
+			if (i+1 < argc) {
+				char * fen = argv[i+1];
+				if (i+2 < argc) {
+					int depth = atoi(argv[i+2]);
+					test_perft(fen, depth);
+				}
+			}
+			return 0;
+		}
 	}
+
+	printf("Chess Engine By Sylvain Philip\n");
 
 	/* deactivate buffering */
 	setvbuf(stdin,  NULL, _IONBF, 0);
