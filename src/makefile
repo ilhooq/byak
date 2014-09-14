@@ -14,42 +14,67 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-CXX  = gcc
+CC = gcc
+EXE = byak
 
-# produce WIN 32 bits exe 
-# CXX  = i686-w64-mingw32-gcc
-
-# produce WIN 64 bits exe 
-# CXX  = x86_64-w64-mingw32-gcc
-
-# LANG = -ansi
-LANG = 
+CFLAGS = 
+LDLIBS = -lpthread
+LDFLAGS =
 WARN = -Wall
-OPTI = 
-# OPTI = -O1
-
 OPTI = -O3
-#OPTI = -O
 
-# Symboles de débuggage
-# GNU debogueur
-# OPTI += -g
-# Gprof
-# OPTI += -pg
+ifeq ($(TARGET), win32)
+	# Produce WIN 32 bits exe from Linux
+	CC = i686-w64-mingw32-gcc
+	EXE = byak.exe
+	LDLIBS =
+endif
 
-EXEC = byak
+ifeq ($(TARGET), win64)
+	# Produce WIN 64 bits exe from Linux
+	CC=x86_64-w64-mingw32-gcc
+	EXE = byak.exe
+	LDLIBS =
+endif
+
+ifeq ($(PLATFORM), win32)
+	# Produce WIN 32 bits exe from Windows
+	CC = mingw32-gcc.exe
+	EXE = byak.exe
+	LDLIBS =
+endif
+
+ifeq ($(PLATFORM), win64)
+	# Produce WIN 64 bits exe from Windows
+	CC = mingw64-gcc.exe
+	EXE = byak.exe
+	LDLIBS =
+endif
+
+ifeq ($(DEBUG), 1)
+	# Add GDB symbols
+	CFLAGS += -g
+	OPTI =
+endif
+
+ifeq ($(DEBUG-PROFILE), 1)
+	# Add Gprof support
+	CFLAGS += -pg
+	OPTI =
+endif
+
 SRC  = $(wildcard *.c)
 OBJ  = $(SRC:%.c=%.o)
 
-all : $(EXEC)
+all : $(EXE)
 
-# linking
-$(EXEC) : $(OBJ)
-	$(CXX) -o $@ $(LANG) $(WARN) $(OPTI) $(DIR) $(OBJ) -lpthread 
+# Linking
+$(EXE) : $(OBJ)
+	$(CC) -o $@ $(WARN) $(OPTI) $(OBJ) $(LDFLAGS) $(LDLIBS)
 
-# compilation
+# Compilation
 bin/%.o : %.c
-	$(CXX) -c -o $@ $< $(LANG) $(WARN) $(OPTI) $(DIR)
+	$(CC) -c -o $@ $< $(WARN) $(OPTI) $(CFLAGS)
 
 clean :
-	rm -f -v *.o $(EXEC)
+	rm -f -v *.o $(EXE) $(EXE).exe
