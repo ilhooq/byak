@@ -32,6 +32,8 @@
 #include "move.h"
 #include "search.h"
 
+static int movestogo;
+
 static void uci_go(char * token)
 {
 	char * subtoken = NULL;
@@ -49,9 +51,11 @@ static void uci_go(char * token)
 	}
 
 	if ((subtoken = strstr(token, "movestogo"))) {
-		int movestogo = atoi(subtoken+10);
-		infos.movetime = infos.time[pos.side] / movestogo;
+		movestogo = atoi(subtoken+10);
+	} else {
+		movestogo--;
 	}
+	infos.movetime = infos.time[pos.side] / movestogo;
 
 	#if !defined(_WIN32) && !defined(_WIN64)
 	/* Linux - Unix */
@@ -169,6 +173,7 @@ void uci_exec(char * token)
 	}
 
 	if (!strcmp(token, "isready")) {
+		movestogo = 40;
 		printf("readyok\n");
 	}
 
@@ -187,7 +192,7 @@ void uci_exec(char * token)
 	}
 
 	if (!strcmp(token, "ucinewgame")) {
-		printf("Not implemented\n");
+		
 	}
 
 	if (!strncmp(token, "position", 8)) {
