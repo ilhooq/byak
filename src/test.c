@@ -111,12 +111,14 @@ void test_divide(const char *fen, int depth)
 void test_perft(const char *fen, int depth)
 {
 	int start, timeused;
+	float nps;
 	position_init();
 	position_fromFen(fen);
 	start = GET_TIME();
 	U64 nodes = search_perft(depth);
 	timeused = GET_TIME() - start;
-	printf("depth:%i;time:%i;nodes:%llu\n", depth, timeused, ULL(nodes));
+	nps = (float) nodes / ((float) timeused /1000);
+	printf("depth:%i;time:%i;nodes:%llu;nps:%.0f\n", depth, timeused, ULL(nodes), nps);
 }
 
 void test_move()
