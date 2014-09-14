@@ -31,6 +31,7 @@
 #include "position.h"
 #include "move.h"
 #include "search.h"
+#include "time.h"
 
 static int movestogo;
 
@@ -258,7 +259,9 @@ void uci_print_currmove(Move * move, int depth, int mvNbr)
 
 void uci_print_pv(int score, int depth, SearchInfos * infos)
 {
-	printf("info depth %i score cp %i", depth, score);
+	int timeused = GET_TIME() - infos->time_start;
+	
+	printf("info depth %i score cp %i nodes %i time %i", depth, score, infos->nodes, timeused);
 
 	printf(" pv ");
 
