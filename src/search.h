@@ -35,9 +35,7 @@ typedef struct {
 
 void* search_start(void* data);
 void search_stop();
-
-Move ** search_get_pv();
-int * search_get_pv_length();
+U64 search_perft(int depth);
 
 void search_iterate();
 int search_root(int alpha, int beta, int depth);

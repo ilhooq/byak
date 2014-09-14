@@ -108,5 +108,4 @@ void position_generatePromotionMoves(Move *movelist, U64 from_square, U64 to_squ
 
 INLINE int position_canMove(U64 from_square, U64 to_square);
 
-U64 position_perft(int depth);
 #endif

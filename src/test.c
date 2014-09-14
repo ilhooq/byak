@@ -99,7 +99,7 @@ void test_divide(const char *fen, int depth)
 	for (i=0; i < listlen; i++){
 
 		position_makeMove(&movelist[i]);
-		count = position_perft(depth);
+		count = search_perft(depth);
 		move_displayAlg(&movelist[i]);
 		printf(" : %llu\n", ULL(count));
 		position_undoMove(&movelist[i]);
@@ -114,7 +114,7 @@ void test_perft(const char *fen, int depth)
 	position_init();
 	position_fromFen(fen);
 	start = GET_TIME();
-	U64 nodes = position_perft(depth);
+	U64 nodes = search_perft(depth);
 	timeused = GET_TIME() - start;
 	printf("depth:%i;time:%i;nodes:%llu\n", depth, timeused, ULL(nodes));
 }
