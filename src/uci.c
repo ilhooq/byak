@@ -274,6 +274,20 @@ void uci_print_pv(int score, int depth, SearchInfos * infos)
 	printf("\n");
 }
 
+void uci_print_nps(int time_start, int nodes)
+{
+	if (!nodes) return;
+	float time_used_in_sec, nps;
+
+	time_used_in_sec = (float) (GET_TIME() - time_start) / 1000;
+
+	if (!time_used_in_sec) return;
+
+	nps = (float) nodes / time_used_in_sec;
+
+	printf("info nps %.0f\n", nps);
+}
+
 void uci_print_bestmove(Move * move)
 {
 	printf("bestmove ");

@@ -156,6 +156,7 @@ int search_root(int alpha, int beta, int depth)
 		score = -search_alphaBeta(-beta, -alpha, depth, 1);
 
 		uci_print_currmove(&movelist[i],depth, i+1);
+		uci_print_nps(infos.time_start, infos.nodes);
 
 		position_undoMove(&movelist[i]);
 

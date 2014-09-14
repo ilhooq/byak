@@ -24,6 +24,6 @@ void uci_exec(char * token);
 void uci_print_move(Move *move);
 void uci_print_currmove(Move * move, int depth, int mvNbr);
 void uci_print_pv(int score, int depth, SearchInfos * infos);
+void uci_print_nps(int time_start, int nodes);
 void uci_print_bestmove(Move * move);
-
 #endif
