@@ -56,7 +56,12 @@ static void uci_go(char * token)
 	} else {
 		movestogo--;
 	}
+
 	infos.movetime = infos.time[pos.side] / movestogo;
+
+	if ((subtoken = strstr(token, "infinite"))) {
+		infos.movetime = 0;
+	}
 
 	#if !defined(_WIN32) && !defined(_WIN64)
 	/* Linux - Unix */

@@ -93,6 +93,8 @@ static void timeControl()
 	time_used > timeleft = timeused > (movetime - time_used) = (time_used * 2) > movetime
 
 	*/
+	if (!infos.movetime) return;
+
 	infos.time_used = GET_TIME() - infos.time_start;
 
 	if ((infos.time_used) * 2 > infos.movetime) {
