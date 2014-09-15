@@ -142,9 +142,10 @@ static void uci_parse_moves(const char * moves)
 
 			from = bitboard_algToBin(moves);
 			to = bitboard_algToBin(moves+2);
+			promotion = NONE_PIECE;
 
 			/* check for promotion */
-			if (moves[4] != ' ') {
+			if (moves[4] && moves[4] != ' ') {
 				switch(moves[4]) {
 					case 'q': promotion = Q; moves++; break;
 					case 'r': promotion = R; moves++; break;
