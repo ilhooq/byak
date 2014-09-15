@@ -960,7 +960,9 @@ void position_generateCheckEvasions( Move *movelist)
 			to_square = LS1B(doublePushs);
 			if (to_square & obstructed) {
 				from_square = (pos.side == WHITE) ? to_square >> 16 : to_square << 16;
-				position_listAdd(movelist, from_square, to_square, PAWN_DOUBLE,0,0,0);
+				if (position_canMove(from_square, to_square)) {
+					position_listAdd(movelist, from_square, to_square, PAWN_DOUBLE,0,0,0);
+				}
 			}
 			doublePushs = RESET_LS1B(doublePushs);
 		}
