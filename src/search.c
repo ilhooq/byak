@@ -149,6 +149,12 @@ int search_root(int alpha, int beta, int depth)
 
 	int listLen = position_generateMoves(movelist);
 
+	if (listLen == 1) {
+		// If there is only one move, stop the search
+		infos.stop = 1;
+		infos.pv[0][0] = movelist[0];
+	}
+
 	sortMoves(movelist, listLen, 0);
 	int i;
 
