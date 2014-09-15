@@ -75,6 +75,17 @@ int main (int argc, char ** argv) {
 			}
 			return 0;
 		}
+
+		if (!strcmp(argv[i], "divide")) {
+			if (i+1 < argc) {
+				char * fen = argv[i+1];
+				if (i+2 < argc) {
+					int depth = atoi(argv[i+2]);
+					test_divide(fen, depth);
+				}
+			}
+			return 0;
+		}
 	}
 
 	printf("Chess Engine By Sylvain Philip\n");
