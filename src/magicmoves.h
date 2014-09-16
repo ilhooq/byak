@@ -75,18 +75,20 @@
 #ifndef _magicmovesh
 #define _magicmovesh
 
+#include "types.h"
+
 /*********MODIFY THE FOLLOWING IF NECESSARY********/
 //the default configuration is the best
 
 //Uncommont either one of the following or none
-#define MINIMIZE_MAGIC
+//#define MINIMIZE_MAGIC
 //#define PERFECT_MAGIC_HASH unsigned short
 
 //the following works only for perfect magic hash or no defenitions above
 //it uses variable shift for each square
 //#define VARIABLE_SHIFT
 
-#define USE_INLINING /*the MMINLINE keyword is assumed to be available*/
+// #define USE_INLINING /*the MMINLINE keyword is assumed to be available*/
 
 #ifndef __64_BIT_INTEGER_DEFINED__
 	#define __64_BIT_INTEGER_DEFINED__

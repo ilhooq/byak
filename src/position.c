@@ -35,16 +35,15 @@
 
 #define POS_DEL_PIECE_BB(piece, bbsq, sq) pos.bb_pieces[(piece)] ^= (bbsq); pos.hash ^= zobrist.piecesquare[(piece)][(sq)]
 
+#define POS_ADD_ATTACK(from_square, to_square) pos.attacks_from[bitboard_bitScanForward(from_square)] |= to_square; pos.attacks_to[bitboard_bitScanForward(to_square)] |= from_square;
+
 Position pos;
 
 static int movelistcount;
 
 void position_init()
 {
-	int i=0;
-	for (i=0; i < 12; i++) {
-		pos.bb_pieces[i] = EMPTY;
-	}
+	memset(pos.bb_pieces, 0, sizeof(pos.bb_pieces));
 
 	pos.bb_side[WHITE] = EMPTY;
 	pos.bb_side[BLACK] = EMPTY;
@@ -61,14 +60,12 @@ void position_init()
 	pos.castling_rights = 0;
 	pos.side = WHITE; // White To Move
 
-	for( i=0; i < TOTAL_SQUARES; i++) {
-		pos.attacks_from[i] = EMPTY;
-		pos.attacks_to[i] = EMPTY;
-		pos.pinner[i] = EMPTY;
-	}
+	memset(pos.attacks_from, 0, sizeof(pos.attacks_from));
+	memset(pos.attacks_to, 0, sizeof(pos.attacks_to));
+	memset(pos.pinner, 0, sizeof(pos.pinner));
+
 	pos.hash = EMPTY;
 	movelistcount=0;
-
 }
 
 
@@ -223,15 +220,6 @@ int position_fromFen(const char *fen)
 
 void position_refresh()
 {
-	// int i=0;
-	// Maybe use memset to reset these arrays
-	/*
-	for( i=0; i < TOTAL_SQUARES; i++) {
-		pos.attacks_from[i] = EMPTY;
-		pos.attacks_to[i] = EMPTY;
-		pos.pinner[i] = EMPTY;
-	}
-	*/
 	memset(pos.attacks_from, 0, sizeof(pos.attacks_from));
 	memset(pos.attacks_to, 0, sizeof(pos.attacks_to));
 	memset(pos.pinner, 0, sizeof(pos.pinner));
@@ -480,12 +468,6 @@ void position_undoMove(Move *move)
 	position_refresh();
 }
 
-INLINE void position_addAttack( U64 from_square, U64 to_square)
-{
-	pos.attacks_from[bitboard_bitScanForward(from_square)] |= to_square;
-	pos.attacks_to[bitboard_bitScanForward(to_square)] |= from_square;
-}
-
 void position_listAdd( Move *movelist, U64 from_square, U64 to_square, 
 TypeMove type, char capture, Piece promoted_piece, Piece captured_piece)
 {
@@ -530,6 +512,7 @@ int position_generateMoves(Move *movelist)
 
 	position_generatePinned();
 	position_generateAttacks();
+	position_generatePawnsAttacks();
 
 	/* Are we in check?! */
 	if (pos.attacks_to[bitboard_bitScanForward(king)] & other_pieces) {
@@ -759,6 +742,7 @@ void position_generateAttacks()
 			// rank_pieces = bitboard_getRank(from_square & queen_rooks) & pos.bb_occupied;
 			// file_pieces = bitboard_getFile(from_square & queen_rooks) & pos.bb_occupied;
 			//moves |= RmagicNOMASK(bitboard_bitScanForward(from_square & queen_rooks), file_pieces | rank_pieces);
+			// Time Consuming
 			moves |= Rmagic(bitboard_bitScanForward(from_square & queen_rooks), pos.bb_occupied);
 		}
 
@@ -766,19 +750,25 @@ void position_generateAttacks()
 			// ne_pieces = bitboard_getDiagNE(from_square & queen_bishops) & pos.bb_occupied;
 			// nw_pieces = bitboard_getDiagNW(from_square & queen_bishops) & pos.bb_occupied;
 			// moves |= BmagicNOMASK(bitboard_bitScanForward(from_square & queen_bishops), ne_pieces | nw_pieces);
+			// Time Consuming
 			moves |= Bmagic(bitboard_bitScanForward(from_square & queen_bishops), pos.bb_occupied);
 		}
 
 		while (moves) {
 			to_square = LS1B(moves);
-			position_addAttack(from_square, to_square);
+			POS_ADD_ATTACK(from_square, to_square);
 			moves = RESET_LS1B(moves);
 		}
 
 		non_pawns = RESET_LS1B(non_pawns);
 	}
+}
 
+void position_generatePawnsAttacks()
+{
 	/* produce pawn attacks. */
+	U64 from_square = EMPTY;
+	U64 to_square = EMPTY;
 	U64 left_attack = EMPTY;
 	U64 right_attack = EMPTY;
 	U64 enpassantRank = EMPTY;
@@ -798,14 +788,14 @@ void position_generateAttacks()
 		while (left_attack) {
 			to_square = LS1B(left_attack);
 			from_square = (side == WHITE) ? to_square >> 7 : to_square << 9;
-			position_addAttack(from_square, to_square);
+			POS_ADD_ATTACK(from_square, to_square);
 			left_attack = RESET_LS1B(left_attack);
 		}
 
 		while (right_attack) {
 			to_square = LS1B(right_attack);
 			from_square = (side == WHITE) ? to_square >> 9 : to_square << 7;
-			position_addAttack(from_square, to_square);
+			POS_ADD_ATTACK(from_square, to_square);
 			right_attack = RESET_LS1B(right_attack);
 		}
 		/*
@@ -823,7 +813,7 @@ void position_generateAttacks()
 							// & (bitboard_getFile(lastDoubleMove) >> 1) & ~FILEH;
 
 			if (enpassantPawn) {
-				position_addAttack(enpassantPawn, pos.last_double);
+				POS_ADD_ATTACK(enpassantPawn, pos.last_double);
 			}
 
 			/* handle the left side capture */
@@ -831,7 +821,7 @@ void position_generateAttacks()
 							// & (bitboard_getFile(lastDoubleMove) << 1) & ~FILEA;
 
 			if (enpassantPawn) {
-				position_addAttack(enpassantPawn, pos.last_double);
+				POS_ADD_ATTACK(enpassantPawn, pos.last_double);
 			}
 		}
 	}

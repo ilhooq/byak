@@ -89,7 +89,7 @@ void position_makeMove(Move *move);
 
 void position_undoMove(Move *move);
 
-INLINE void position_addAttack(U64 from_square, U64 to_square);
+// INLINE void position_addAttack(U64 from_square, U64 to_square);
 
 /**
  * Generate all legal moves
@@ -97,6 +97,8 @@ INLINE void position_addAttack(U64 from_square, U64 to_square);
 int position_generateMoves(Move *movelist);
 
 void position_generateAttacks();
+
+void position_generatePawnsAttacks();
 
 void position_generateCheckEvasions(Move *movelist);
 
@@ -106,6 +108,6 @@ void position_listAdd(Move *movelist, U64 from_square, U64 to_square, TypeMove t
 
 void position_generatePromotionMoves(Move *movelist, U64 from_square, U64 to_square, int capture);
 
-INLINE int position_canMove(U64 from_square, U64 to_square);
+// int INLINE position_canMove(U64 from_square, U64 to_square);
 
 #endif

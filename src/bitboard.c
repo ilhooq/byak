@@ -23,30 +23,30 @@
 #include "magicmoves.h"
 
 /** Algebric notation for each square */
-static char bin2alg[64][3];
+char bin2alg[64][3];
 
 /** Knight moves mask for each square */
-static U64 knight_moves[64];
+U64 knight_moves[64];
 
 /** King moves mask for each square */
-static U64 king_moves[64];
+U64 king_moves[64];
 
-static int file[64];
-static int rank[64];
+int file[64];
+int rank[64];
 
 /** Rank mask for each square */
-static U64 rank_mask[64];
+U64 rank_mask[64];
 
 /** File mask for each square */
-static U64 file_mask[64];
+U64 file_mask[64];
 
 /** NorthEast Diag mask for each square */
-static U64 diag_mask_ne[64];
+U64 diag_mask_ne[64];
 
 /** NorthWest Diag mask for each square */
-static U64 diag_mask_nw[64];
+U64 diag_mask_nw[64];
 
-static U64 obstructed_mask[64][64];
+U64 obstructed_mask[64][64];
 
 /** Private function to init king_moves */
 static void gen_king_moves()
@@ -281,46 +281,6 @@ U64 bitboard_algToBin(const char *alg)
 	return rank & file;
 }
 
-#if !(defined __LP64__ || defined __LLP64__) || defined _WIN32 && !defined _WIN64
-/* This code works for 32 bits or 64 bits procesors*/
-int bitboard_bitScanForward(U64 bb) 
-{
-	assert(bb);
-	/* Returns one plus the index of the 
-	 * least significant 1-bit of x, or if x is zero, returns zero */
-	return __builtin_ffsll(bb) - 1;
-}
-
-int bitboard_bitScanReverse(U64 bb) 
-{
-	assert(bb);
-	/* Returns the number of leading 0-bits in x, starting at the most 
-	 * significant bit position. If x is 0, the result is undefined */
-	return 63 - __builtin_clzll(bb);
-}
-
-#else
-/* This code is only for 64 bits procesors */
-
-int bitboard_bitScanForward(U64 bb)
-{
-	U64 index;
-	assert(bb);
-	__asm__("bsfq %1, %0": "=r"(index): "rm"(bb) );
-	return (int) index;
-}
-
-
-int bitboard_bitScanReverse(U64 bb)
-{
-	U64 index;
-	assert(bb);
-	__asm__("bsrq %1, %0": "=r"(index): "rm"(bb) );
-	return (int) index;
-}
-
-#endif
-
 inline int bitboard_IPopCount(U64 x) {
 	int count = 0;
 	while (x) {
@@ -330,8 +290,6 @@ inline int bitboard_IPopCount(U64 x) {
 	}
 	return count;
 };
-
-
 
 void bitboard_display(U64 bb)
 {
@@ -369,67 +327,7 @@ void bitboard_display(U64 bb)
 }
 
 
-/**
-* Shiffting methods
-*/
-INLINE U64 bitboard_soutOne(U64 bb)
-{
-	return bb >> 8;
-};
 
-INLINE U64 bitboard_nortOne(U64 bb)
-{
-	return  bb << 8;
-}
-
-INLINE U64 bitboard_eastOne(U64 bb)
-{
-	/*		(bb << 1) & ~FILEA */
-	return (bb << 1) & C64(0xfefefefefefefefe);
-}
-
-INLINE U64 bitboard_noEaOne(U64 bb)
-{
-	/*		(bb << 9) & ~FILEA */
-	return (bb << 9) & C64(0xfefefefefefefefe);
-}
-
-INLINE U64 bitboard_soEaOne(U64 bb)
-{
-	/*		(bb >> 7) & ~FILEA */
-	return (bb >> 7) & C64(0xfefefefefefefefe);
-}
-
-INLINE U64 bitboard_westOne(U64 bb)
-{
-	/*		(bb >> 1) & ~FILEH */
-	return (bb >> 1) & C64(0x7f7f7f7f7f7f7f7f);
-}
-
-INLINE U64 bitboard_soWeOne(U64 bb) {
-	/*		(bb >> 9) & ~FILEH */
-	return (bb >> 9) & C64(0x7f7f7f7f7f7f7f7f);
-}
-
-INLINE U64 bitboard_noWeOne(U64 bb)
-{
-	/*		(bb << 7) & ~FILEH */
-	return (bb << 7) & C64(0x7f7f7f7f7f7f7f7f);
-}
-
-U64 bitboard_getKingMoves(U64 bb)
-{
-	assert(bb != EMPTY);
-	Square idx = bitboard_bitScanForward(bb);
-	return king_moves[idx];
-}
-
-U64 bitboard_getKnightMoves(U64 bb)
-{
-	assert(bb != EMPTY);
-	Square idx = bitboard_bitScanForward(bb);
-	return knight_moves[idx];
-}
 
 U64 bitboard_getFile(U64 bb)
 {

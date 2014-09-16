@@ -19,6 +19,7 @@
 #ifndef BITBOARD_H
 #define BITBOARD_H
 
+#include <assert.h>
 #include "types.h"
 
 /*
@@ -94,6 +95,31 @@ typedef enum enumSquare {
 	NONE_SQUARE, /* 64 */
 } Square;
 
+/** Algebric notation for each square */
+extern char bin2alg[64][3];
+
+/** Knight moves mask for each square */
+extern U64 knight_moves[64];
+
+/** King moves mask for each square */
+extern U64 king_moves[64];
+
+extern int file[64];
+extern int rank[64];
+
+/** Rank mask for each square */
+extern U64 rank_mask[64];
+
+/** File mask for each square */
+extern U64 file_mask[64];
+
+/** NorthEast Diag mask for each square */
+extern U64 diag_mask_ne[64];
+
+/** NorthWest Diag mask for each square */
+extern U64 diag_mask_nw[64];
+
+extern U64 obstructed_mask[64][64];
 
 
 int bitboard_IPopCount(U64 x);
@@ -101,21 +127,51 @@ int bitboard_IPopCount(U64 x);
 /**
 * Shiffting methods
 */
-U64 bitboard_soutOne(U64 bb);
+U64 static INLINE bitboard_soutOne(U64 bb)
+{
+	return bb >> 8;
+}
 
-U64 bitboard_nortOne(U64 bb);
+U64 static INLINE bitboard_nortOne(U64 bb)
+{
+	return  bb << 8;
+}
 
-U64 bitboard_eastOne(U64 bb);
+U64 static INLINE bitboard_eastOne(U64 bb)
+{
+	/*		(bb << 1) & ~FILEA */
+	return (bb << 1) & C64(0xfefefefefefefefe);
+}
 
-U64 bitboard_noEaOne(U64 bb);
+U64 static INLINE bitboard_noEaOne(U64 bb)
+{
+	/*		(bb << 9) & ~FILEA */
+	return (bb << 9) & C64(0xfefefefefefefefe);
+}
 
-U64 bitboard_soEaOne(U64 bb);
+U64 static INLINE bitboard_soEaOne(U64 bb)
+{
+	/*		(bb >> 7) & ~FILEA */
+	return (bb >> 7) & C64(0xfefefefefefefefe);
+}
 
-U64 bitboard_westOne(U64 bb);
+U64 static INLINE bitboard_westOne(U64 bb)
+{
+	/*		(bb >> 1) & ~FILEH */
+	return (bb >> 1) & C64(0x7f7f7f7f7f7f7f7f);
+}
 
-U64 bitboard_soWeOne(U64 bb);
+U64 static INLINE bitboard_soWeOne(U64 bb) {
+	/*		(bb >> 9) & ~FILEH */
+	return (bb >> 9) & C64(0x7f7f7f7f7f7f7f7f);
+}
 
-U64 bitboard_noWeOne(U64 bb);
+U64 static INLINE bitboard_noWeOne(U64 bb)
+{
+	/*		(bb << 7) & ~FILEH */
+	return (bb << 7) & C64(0x7f7f7f7f7f7f7f7f);
+}
+
 
 void bitboard_init();
 
@@ -123,13 +179,39 @@ char* bitboard_binToAlg(U64 bb);
 
 U64 bitboard_algToBin(const char *alg);
 
+#if !(defined __LP64__ || defined __LLP64__) || defined _WIN32 && !defined _WIN64
+/* This code works for 32 bits or 64 bits procesors*/
+int static INLINE bitboard_bitScanForward(U64 bb) 
+{
+	assert(bb);
+	/* Returns one plus the index of the 
+	 * least significant 1-bit of x, or if x is zero, returns zero */
+	return __builtin_ffsll(bb) - 1;
+}
+
+int static INLINE bitboard_bitScanReverse(U64 bb) 
+{
+	assert(bb);
+	/* Returns the number of leading 0-bits in x, starting at the most 
+	 * significant bit position. If x is 0, the result is undefined */
+	return 63 - __builtin_clzll(bb);
+}
+
+#else
+/* This code is only for 64 bits procesors */
 /**
  * bitboard_bitScanForward
  * @param bb bitboard to scan
  * @precondition bb != 0
  * @return index (0..63) of least significant one bit
  */
-int bitboard_bitScanForward(U64 bb);
+int static INLINE bitboard_bitScanForward(U64 bb) 
+{
+	assert(bb);
+	// U64 index;
+	__asm__("bsfq %0, %0" : "=r" (bb) : "0" (bb));
+	return (int) bb;
+}
 
 /**
  * bitboard_bitScanReverse
@@ -137,7 +219,15 @@ int bitboard_bitScanForward(U64 bb);
  * @precondition bb != 0
  * @return index (0..63) of most significant one bit
  */
-int bitboard_bitScanReverse(U64 bb);
+int static INLINE bitboard_bitScanReverse(U64 bb) 
+{
+	assert(bb);
+	U64 index;
+	__asm__("bsrq %0, %0": "=r" (index) : "mr" (bb));
+	return (int) index;
+}
+
+#endif
 
 /**
  * bitboard_display
@@ -147,9 +237,19 @@ int bitboard_bitScanReverse(U64 bb);
  */
 void bitboard_display(U64 bb);
 
-U64 bitboard_getKingMoves(U64 bb);
+U64 static INLINE bitboard_getKingMoves(U64 bb)
+{
+	assert(bb != EMPTY);
+	Square idx = bitboard_bitScanForward(bb);
+	return king_moves[idx];
+}
 
-U64 bitboard_getKnightMoves(U64 bb);
+U64 static INLINE bitboard_getKnightMoves(U64 bb)
+{
+	assert(bb != EMPTY);
+	Square idx = bitboard_bitScanForward(bb);
+	return knight_moves[idx];
+}
 
 U64 bitboard_getFile(U64 bb);
 

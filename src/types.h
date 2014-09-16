@@ -20,12 +20,21 @@
 #define TYPES_H
 #include <stdint.h>
 
+#define USE_INLINING
+
 /* inline is not valid in C ANSI */
-#define INLINE
-/*
-This works with C 99
-#define INLINE inline
-*/
+#ifdef USE_INLINING
+	#ifdef _MSC_VER
+		#define INLINE __forceinline
+	#elif defined(__GNUC__)
+		#define INLINE __inline__ __attribute__((always_inline))
+	#else
+		#define INLINE inline
+	#endif
+#else
+	#define INLINE
+#endif
+
 
 typedef uint64_t U64;
 typedef int64_t  S64;
