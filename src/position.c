@@ -197,7 +197,7 @@ int position_fromFen(const char *fen)
 				pos.hash ^= zobrist.castling[pos.castling_rights];
 				break;
 			case 3:
-				if (pos.enpassant) {
+				if (pos.enpassant != NONE_SQUARE) {
 					// Break the test if enpassant is set
 					break;
 				}
@@ -540,7 +540,7 @@ int position_generateMoves(Move *movelist)
 	U64 to_square = EMPTY;
 	U64 moves = EMPTY;
 
-	U64 enpassant_mask = pos.enpassant ? C64(1) << pos.enpassant : EMPTY;
+	U64 enpassant_mask = (pos.enpassant != NONE_SQUARE) ? C64(1) << pos.enpassant : EMPTY;
 
 	while (pieces) {
 		from_square = LS1B(pieces);
