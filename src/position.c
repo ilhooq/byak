@@ -552,7 +552,8 @@ int position_generateMoves(Move *movelist)
 	U64 from_square = EMPTY;
 	U64 to_square = EMPTY;
 	U64 moves = EMPTY;
-	int enPassant = 0;
+
+	U64 enpassant_mask = pos.enpassant ? C64(1) << pos.enpassant : EMPTY;
 
 	while (pieces) {
 		from_square = LS1B(pieces);
@@ -560,18 +561,6 @@ int position_generateMoves(Move *movelist)
 				& (other_pieces | pos.bb_empty);
 		while (moves) {
 			to_square = LS1B(moves);
-			enPassant = 0;
-
-			/* For en passant capture, change the destination square */
-			if ((to_square & pos.last_double) && (from_square & rank45 & pawns)) {
-				enPassant = 1;
-				if (pos.side == WHITE) {
-					to_square = bitboard_nortOne(to_square);
-				}
-				else {
-					to_square = bitboard_soutOne(to_square);
-				}
-			}
 
 			if (!position_canMove(from_square, to_square)) {
 				moves = RESET_LS1B(moves);
@@ -579,20 +568,8 @@ int position_generateMoves(Move *movelist)
 			}
 
 			/* En passant capture */
-			if (enPassant) {
-				pinned = EMPTY;
-				// Check if the pawn is not pinned if the last double move is cleared
-				if ((king & rank45) && (otherQueenRooks & rank45)) {
-					pinner = bitboard_xrayRankAttacks(pos.bb_occupied ^ pos.last_double, our_pieces, king)
-						   & otherQueenRooks;
-					if (pinner) {
-						pinned = bitboard_getObstructed(pinner, king) & our_pieces;
-					}
-				}
-
-				if (!pinned) {
-					position_listAdd(movelist, from_square, to_square, ENPASSANT,1,0,0);
-				}
+			if (to_square == enpassant_mask) {
+				position_listAdd(movelist, from_square, to_square, ENPASSANT,1,0,0);
 			}
 
 			/* Normal capture */
@@ -775,8 +752,6 @@ void position_generatePawnsAttacks()
 	U64 to_square = EMPTY;
 	U64 left_attack = EMPTY;
 	U64 right_attack = EMPTY;
-	U64 enpassantRank = EMPTY;
-	U64 enpassantPawn = EMPTY;
 	
 	int side = 0;
 	for (side=0; side < 2; side++) {
@@ -801,32 +776,6 @@ void position_generatePawnsAttacks()
 			from_square = (side == WHITE) ? to_square >> 9 : to_square << 7;
 			POS_ADD_ATTACK(from_square, to_square);
 			right_attack = RESET_LS1B(right_attack);
-		}
-		/*
-		En passant attacks
-		for en passant, the pawn really doesn't attack the
-		squares diagonally on the side of the pawn that just moved
-		two squares forward.  It attacks the pawn directly next to it
-		(as well as the diagonal in front of it).
-		*/
-		if (pos.last_double) {
-			enpassantRank = (side == WHITE) ? RANK5 : RANK4;
-
-			/* handle the right side capture */
-			enpassantPawn = pos.bb_pieces[P + side] & enpassantRank & bitboard_westOne(pos.last_double);
-							// & (bitboard_getFile(lastDoubleMove) >> 1) & ~FILEH;
-
-			if (enpassantPawn) {
-				POS_ADD_ATTACK(enpassantPawn, pos.last_double);
-			}
-
-			/* handle the left side capture */
-			enpassantPawn = pos.bb_pieces[P + side] & enpassantRank & bitboard_eastOne(pos.last_double);
-							// & (bitboard_getFile(lastDoubleMove) << 1) & ~FILEA;
-
-			if (enpassantPawn) {
-				POS_ADD_ATTACK(enpassantPawn, pos.last_double);
-			}
 		}
 	}
 }
@@ -1092,10 +1041,6 @@ int position_canMove( U64 from_square, U64 to_square)
 		if (bitboard_diagonalAttacks(occupancy, to_square) & otherQueenBishops) {
 			return 0;
 		}
-	}
-	
-	if (from_square == SQ64(e4)) {
-		pinner = EMPTY;
 	}
 
 	if (from_square & pos.pinned) {
