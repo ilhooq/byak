@@ -380,7 +380,7 @@ void position_undoMove(Move *move)
 	U64 from_square = SQ64(move->to);
 	U64 to_square =  SQ64(move->from);
 	U64 bb_fromTo = to_square | from_square;
-	Piece pgiece[12] = {P,K,Q,N,B,R,p,k,q,n,b,r};
+	Piece piece[12] = {P,K,Q,N,B,R,p,k,q,n,b,r};
 	int i = 0;
 
 	Piece pieceFrom = NONE_PIECE;

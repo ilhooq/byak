@@ -20,7 +20,11 @@
 #define TYPES_H
 #include <stdint.h>
 
-#define USE_INLINING
+#ifndef DEBUG
+	#define USE_INLINING
+	/* Deactivate assertions */
+	#define NDEBUG
+#endif
 
 /* inline is not valid in C ANSI */
 #ifdef USE_INLINING

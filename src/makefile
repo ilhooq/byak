@@ -16,8 +16,7 @@
 
 CC = gcc
 EXE = byak
-
-CFLAGS = 
+CFLAGS =
 LDLIBS = -lpthread
 LDFLAGS =
 WARN = -Wall
@@ -53,16 +52,34 @@ endif
 
 ifeq ($(DEBUG), 1)
 	# Add GDB symbols
-	CFLAGS += -g
+	CFLAGS += -g -DDEBUG
 	OPTI =
 endif
 
 ifeq ($(DEBUG-PROFILE), 1)
 	# Add Gprof support
-	CFLAGS += -pg
+	CFLAGS += -pg -DDEBUG
 	LDFLAGS += -pg
 	OPTI =
 endif
+
+ifeq ($(DEBUG-GCOV), 1)
+	# Add Gcov support
+	CFLAGS += -fprofile-arcs -ftest-coverage -DDEBUG
+	LDFLAGS += -fprofile-arcs -ftest-coverage
+	OPTI =
+endif
+
+ifeq ($(USE-INLINING), 1)
+	# Force inlining (Enabled by default in non-debugging mode)
+	CFLAGS += -DUSE_INLINING
+endif
+
+ifeq ($(CLANG), C99)
+	# Compile in C99
+	CFLAGS = -std=c99
+endif
+
 
 SRC  = $(wildcard *.c)
 OBJ  = $(SRC:%.c=%.o)
@@ -78,4 +95,4 @@ bin/%.o : %.c
 	$(CC) -c -o $@ $< $(WARN) $(OPTI) $(CFLAGS)
 
 clean :
-	rm -f -v *.o $(EXE) $(EXE).exe *.out
+	rm -f -v *.o $(EXE) $(EXE).exe *.out *.gcov *.gcno *.gcda
