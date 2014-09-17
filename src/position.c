@@ -31,11 +31,12 @@
 
 #define POS_DEL_PIECE(piece, sq) pos.bb_pieces[(piece)] ^= SQ64((sq)); pos.hash ^= zobrist.piecesquare[(piece)][(sq)]
 
-#define POS_ADD_PIECE_BB(piece, bbsq, sq) pos.bb_pieces[(piece)] |= (bbsq); pos.hash ^= zobrist.piecesquare[(piece)][(sq)]
+#define POS_MOVE_PIECE(piece, sq_from, sq_to) POS_DEL_PIECE(piece, sq_from); POS_ADD_PIECE(piece, sq_to);
 
-#define POS_DEL_PIECE_BB(piece, bbsq, sq) pos.bb_pieces[(piece)] ^= (bbsq); pos.hash ^= zobrist.piecesquare[(piece)][(sq)]
+#define POS_ADD_ATTACK(from_square, to_square) \
+	pos.attacks_from[bitboard_bitScanForward(from_square)] |= to_square; \
+	pos.attacks_to[bitboard_bitScanForward(to_square)] |= from_square;
 
-#define POS_ADD_ATTACK(from_square, to_square) pos.attacks_from[bitboard_bitScanForward(from_square)] |= to_square; pos.attacks_to[bitboard_bitScanForward(to_square)] |= from_square;
 
 Position pos;
 
@@ -346,24 +347,17 @@ void position_makeMove(Move *move)
 	else if (move->type == CASTLE) {
 		switch (move->to) {
 			case g1 : 
-				POS_DEL_PIECE(R, h1);
-				POS_ADD_PIECE(R, f1);
+				POS_MOVE_PIECE(R, h1, f1);
 				break;
 			case c1 :
-				POS_DEL_PIECE(R, a1);
-				POS_ADD_PIECE(R, d1);
+				POS_MOVE_PIECE(R, a1, d1);
 				break;
 			case g8 :
-				POS_DEL_PIECE(r, h8);
-				POS_ADD_PIECE(r, f8);
+				POS_MOVE_PIECE(r, h8, f8);
 				break;
 			case c8 :
-				POS_DEL_PIECE(r, a8);
-				POS_ADD_PIECE(r, d8);
+				POS_MOVE_PIECE(r, a8, d8);
 				break;
-			default:
-				printf("Error : Invalid castle move\n");
-				move_display(move);
 		}
 	}
 	else if (move->type == PAWN_DOUBLE) {
@@ -386,7 +380,7 @@ void position_undoMove(Move *move)
 	U64 from_square = SQ64(move->to);
 	U64 to_square =  SQ64(move->from);
 	U64 bb_fromTo = to_square | from_square;
-	Piece piece[12] = {P,K,Q,N,B,R,p,k,q,n,b,r};
+	Piece pgiece[12] = {P,K,Q,N,B,R,p,k,q,n,b,r};
 	int i = 0;
 
 	Piece pieceFrom = NONE_PIECE;
@@ -440,24 +434,17 @@ void position_undoMove(Move *move)
 	else if (move->type == CASTLE) {
 		switch (move->to) {
 			case g1 : 
-				POS_DEL_PIECE(R, f1);
-				POS_ADD_PIECE(R, h1);
+				POS_MOVE_PIECE(R, f1, h1);
 				break;
 			case c1 :
-				POS_DEL_PIECE(R, d1);
-				POS_ADD_PIECE(R, a1);
+				POS_MOVE_PIECE(R, d1, a1);
 				break;
 			case g8 :
-				POS_DEL_PIECE(r, f8);
-				POS_ADD_PIECE(r, h8);
+				POS_MOVE_PIECE(r, f8, h8);
 				break;
 			case c8 :
-				POS_DEL_PIECE(r, d8);
-				POS_ADD_PIECE(r, a8);
+				POS_MOVE_PIECE(r, d8, a8);
 				break;
-			default:
-				printf("Error : Invalid castle move\n");
-				move_display(move);
 		}
 	}
 	else if (move->type == PAWN_DOUBLE) {
