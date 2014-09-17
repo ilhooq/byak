@@ -196,6 +196,10 @@ int position_fromFen(const char *fen)
 				pos.hash ^= zobrist.castling[pos.castling_rights];
 				break;
 			case 3:
+				if (pos.enpassant) {
+					// Break the test if enpassant is set
+					break;
+				}
 				enPassantTarget = bitboard_algToBin(&(fen[i]));
 				if (enPassantTarget & RANK6) {
 					pos.last_double = bitboard_soutOne(enPassantTarget);
