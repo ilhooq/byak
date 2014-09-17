@@ -81,6 +81,7 @@
 /* Convert a square to bitboard */
 #define SQ64(constantINT) ((C64(1)) << (constantINT))
 
+#define NONE_SQUARE 0
 
 typedef enum enumSquare {
 	a1, b1, c1, d1, e1, f1, g1, h1, /*  0 .. 7  */
@@ -92,7 +93,6 @@ typedef enum enumSquare {
 	a7, b7, c7, d7, e7, f7, g7, h7, /* 48 .. 55 */
 	a8, b8, c8, d8, e8, f8, g8, h8,  /* 56 .. 63 */
 	TOTAL_SQUARES, /* 64 */
-	NONE_SQUARE, /* 64 */
 } Square;
 
 /** Algebric notation for each square */
