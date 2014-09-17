@@ -362,9 +362,11 @@ void position_makeMove(Move *move)
 	}
 	else if (move->type == PAWN_DOUBLE) {
 		pos.last_double = bb_to;
-		// Activate new enPassant
-		pos.enpassant = (move->from + move->to) / 2;
-		pos.hash ^= zobrist.ep[pos.enpassant];
+		if ((bitboard_westOne(bb_to) | bitboard_eastOne(bb_to)) & pos.bb_pieces[P + (1 ^ pos.side)]) {
+			// Activate new enPassant
+			pos.enpassant = (move->from + move->to) / 2;
+			pos.hash ^= zobrist.ep[pos.enpassant];
+		}
 	}
 
 	/* switch side to move */
@@ -555,7 +557,7 @@ int position_generateMoves(Move *movelist)
 			}
 
 			/* En passant capture */
-			if (to_square == enpassant_mask) {
+			if (to_square == enpassant_mask && from_square & pawns) {
 				position_listAdd(movelist, from_square, to_square, ENPASSANT,1,0,0);
 			}
 
