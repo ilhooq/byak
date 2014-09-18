@@ -91,7 +91,7 @@ $(EXE) : $(OBJ)
 	$(CC) -o $@ $(WARN) $(OPTI) $(OBJ) $(LDFLAGS) $(LDLIBS)
 
 # Compilation
-bin/%.o : %.c
+%.o : %.c
 	$(CC) -c -o $@ $< $(WARN) $(OPTI) $(CFLAGS)
 
 clean :

@@ -290,7 +290,6 @@ U64 search_perft(int depth)
 	U64 nodes = 0;
 	int val = tt_perft_probe(pos.hash, depth);
 	int listLen = 0;
-	U64 hashbefore = pos.hash;
 	int i;
 
 	if (depth == 0) {
@@ -313,7 +312,6 @@ U64 search_perft(int depth)
 		position_makeMove(&movelist[i]);
 		nodes += search_perft(depth - 1);
 		position_undoMove(&movelist[i]);
-		assert(hashbefore == pos.hash);
 	}
 
 	tt_perft_save(pos.hash, nodes, depth);

@@ -17,6 +17,7 @@
 */
 
 #include <assert.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include "tt.h"
 #include "prng.h"
@@ -74,7 +75,7 @@ int tt_setsize(int size)
  */
 void tt_init(int size) 
 {
-	int p, s, castling, ep = 0, sizeset = 0;
+	int p, s, castling, ep = 0;
 	/* fill the zobrist struct with random numbers */
 	for (p = 0; p <= 11; p++) {
 		for (s = 0; s <= 63; s++) {
@@ -92,9 +93,10 @@ void tt_init(int size)
 		zobrist.ep[ep] = rand64();
 	}
 
-	sizeset = tt_setsize(size);
-	// Don't call tt_setsize(size) in assert() macro in case assert is deactivated
-	assert(sizeset);
+	if (!tt_setsize(size)) {
+		printf("Transpostion Table not initialized\n");
+		exit(1);
+	}
 }
 
 void tt_save(U64 hash, int val, U16 depth, U16 flag)

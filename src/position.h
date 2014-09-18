@@ -108,6 +108,6 @@ void position_listAdd(Move *movelist, U64 from_square, U64 to_square, TypeMove t
 
 void position_generatePromotionMoves(Move *movelist, U64 from_square, U64 to_square, int capture);
 
-// int INLINE position_canMove(U64 from_square, U64 to_square);
+int INLINE position_canMove(U64 from_square, U64 to_square);
 
 #endif

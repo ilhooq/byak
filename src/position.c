@@ -325,7 +325,7 @@ void position_makeMove(Move *move)
 		POS_ADD_PIECE(move->promoted_piece, move->to);
 	}
 	else if (move->type == CASTLE) {
-		switch (move->to) {
+		switch ((int) move->to) {
 			case g1 : 
 				POS_MOVE_PIECE(R, h1, f1);
 				break;
@@ -414,7 +414,7 @@ void position_undoMove(Move *move)
 		POS_ADD_PIECE(P + pos.side, move->from);
 	}
 	else if (move->type == CASTLE) {
-		switch (move->to) {
+		switch ((int) move->to) {
 			case g1 : 
 				POS_MOVE_PIECE(R, f1, h1);
 				break;
@@ -462,16 +462,10 @@ int position_generateMoves(Move *movelist)
 {
 	int otherSide = 1 ^ pos.side;
 	U64 king = pos.bb_pieces[K + pos.side];
-	U64 our_pieces = pos.bb_side[pos.side];
 	U64 other_pieces = pos.bb_side[otherSide];
-
 	U64 pieces = EMPTY;
 	U64 pawns = EMPTY;
-	U64 rank45 = EMPTY;
-	U64 otherQueenRooks = EMPTY;
 	U64 rank18 = RANK1 | RANK8;
-	U64 pinned = EMPTY;
-	U64 pinner = EMPTY;
 	movelistcount = 0;
 
 	/*
@@ -508,14 +502,10 @@ int position_generateMoves(Move *movelist)
 	if (pos.side == WHITE) {
 		pieces = pos.bb_side[WHITE];
 		pawns = pos.bb_pieces[P];
-		rank45 = RANK5;
-		otherQueenRooks = pos.bb_pieces[r] | pos.bb_pieces[q];
 	}
 	else {
 		pieces = pos.bb_side[BLACK];
 		pawns = pos.bb_pieces[p];
-		rank45 = RANK4;
-		otherQueenRooks = pos.bb_pieces[R] | pos.bb_pieces[Q];
 	}
 
 	U64 from_square = EMPTY;
@@ -613,7 +603,7 @@ int position_generateMoves(Move *movelist)
 	* produce single pawn moves...these are not handled in generate_attacks
 	* since pawns can only attack diagonally (or enpassant)
 	*/
-	// pinned = pos.pinned & ~position_getFilePinned(pos.bb_occupied, our_pieces);
+
 	U64 singlePushs = EMPTY;
 	U64 doublePushs = EMPTY;
 
@@ -763,15 +753,13 @@ void position_generateCheckEvasions( Move *movelist)
 	int num_attackers = bitboard_IPopCount(king_attackers);
 
 	U64 pawns = EMPTY;
-	
-	U64 rank45 = EMPTY;
+
 	U64 our_attacking_pieces = EMPTY;
 	U64 rank18 = RANK1 | RANK8;
 	U64 from_square = EMPTY;
 	U64 to_square = EMPTY;
 
 	U64 enpassant_mask = (pos.enpassant != NONE_SQUARE) ? C64(1) << pos.enpassant : EMPTY;
-
 
 	// We can either
 	// 1. capture the attacking piece
@@ -780,7 +768,6 @@ void position_generateCheckEvasions( Move *movelist)
 
 	if (num_attackers == 1) {
 		U64 blockers = EMPTY;
-		int enPassant = 0;
 		// U64 occupancy = EMPTY;
 		// U64 pinned = EMPTY;
 		king_attacker = king_attackers;
@@ -798,7 +785,6 @@ void position_generateCheckEvasions( Move *movelist)
 		}
 		
 		pawns = pos.bb_pieces[P + pos.side];
-		rank45 = (pos.side == WHITE) ? RANK5 : RANK4;
 
 		// Check for enpassant capture
 		if (enpassant_mask) {
@@ -984,7 +970,7 @@ void position_generatePromotionMoves( Move *movelist, U64 from_square, U64 to_sq
 	}
 }
 
-int position_canMove( U64 from_square, U64 to_square)
+int INLINE position_canMove(U64 from_square, U64 to_square)
 {
 	int otherSide = 1 ^ pos.side;
 	U64 king = pos.bb_pieces[K + pos.side];
