@@ -261,30 +261,10 @@ void position_makeMove(Move *move)
 	/* Determine which piece type to move */
 	Piece piece[12] = {P,K,Q,N,B,R,p,k,q,n,b,r};
 	for (i=0; i < 12; i++) {
-		if (pos.bb_pieces[piece[i]] & bb_from) {
-			pieceFrom = piece[i];
-		}
-		if (pos.bb_pieces[piece[i]] & bb_to) {
-			move->captured_piece = piece[i];
-		}
+		if (pos.bb_pieces[piece[i]] & bb_from) pieceFrom = piece[i];
+		if (pos.bb_pieces[piece[i]] & bb_to) move->captured_piece = piece[i];
 	}
-	
-	/*
-	Piece piece[6] = {P,K,Q,N,B,R};
-	int other_side = 1 ^ pos.side;
-	Piece tmp1 = NONE_PIECE;
-	Piece tmp2 = NONE_PIECE;
-	for (i=0; i < 6; i++) {
-		tmp1 = piece[i] + pos.side;
-		tmp2 = piece[i] + other_side;
-		if (pos.bb_pieces[tmp1] & bb_from) {
-			pieceFrom = tmp1;
-		}
-		if (pos.bb_pieces[tmp2] & bb_to) {
-			move->captured_piece = tmp2;
-		}
-	}
-	*/
+
 	/* Move the piece in one instruction : */
 	pos.bb_pieces[pieceFrom] ^=  bb_from ^ bb_to;
 	pos.hash ^= zobrist.piecesquare[pieceFrom][move->from];
@@ -406,7 +386,7 @@ void position_undoMove(Move *move)
 		// Deactivate En passant
 		pos.hash ^= zobrist.ep[pos.enpassant];
 	}
-	
+
 	if (move->ep != NONE_SQUARE) {
 		// Reactivate old state En passant
 		pos.hash ^= zobrist.ep[move->ep];
@@ -790,6 +770,8 @@ void position_generateCheckEvasions( Move *movelist)
 	U64 from_square = EMPTY;
 	U64 to_square = EMPTY;
 
+	U64 enpassant_mask = (pos.enpassant != NONE_SQUARE) ? C64(1) << pos.enpassant : EMPTY;
+
 
 	// We can either
 	// 1. capture the attacking piece
@@ -818,27 +800,32 @@ void position_generateCheckEvasions( Move *movelist)
 		pawns = pos.bb_pieces[P + pos.side];
 		rank45 = (pos.side == WHITE) ? RANK5 : RANK4;
 
+		// Check for enpassant capture
+		if (enpassant_mask) {
+			// We know the king attacker is a pawn
+			if (bitboard_westOne(king_attacker) & pawns) {
+				from_square = bitboard_westOne(king_attacker) & pawns;
+				if (position_canMove(from_square, enpassant_mask)) {
+					position_listAdd(movelist, from_square, enpassant_mask, ENPASSANT,1,0,0);
+					our_attacking_pieces ^= from_square;
+				}
+			}
+			if (bitboard_eastOne(king_attacker) & pawns) {
+				from_square = bitboard_eastOne(king_attacker) & pawns;
+				if (position_canMove(from_square, enpassant_mask)) {
+					position_listAdd(movelist, from_square, enpassant_mask, ENPASSANT,1,0,0);
+					our_attacking_pieces ^= from_square;
+				}
+			}
+		}
+
 		while (our_attacking_pieces) {
 			from_square = LS1B(our_attacking_pieces);
 			to_square = pos.attacks_from[bitboard_bitScanForward(from_square)] & king_attacker;
-			enPassant = 0;
 
-			/* For en passant capture, change the destination square */
-			if ((to_square & pos.last_double) && (from_square & rank45 & pawns)) {
-				enPassant = 1;
-				if (pos.side == WHITE) {
-					to_square = bitboard_nortOne(to_square);
-				}
-				else {
-					to_square = bitboard_soutOne(to_square);
-				}
-			}
-
-			if (((to_square & king_attacker) || enPassant) && position_canMove(from_square, to_square)) {
+			if ((to_square & king_attacker) && position_canMove(from_square, to_square)) {
 				// Capture
-				if (enPassant) {
-					position_listAdd(movelist, from_square, to_square, ENPASSANT,1,0,0);
-				} else if ((from_square & pawns) && (rank18 & to_square)) {
+				if ((from_square & pawns) && (rank18 & to_square)) {
 					// We have a capture and promotion
 					position_generatePromotionMoves(movelist, from_square, to_square, 1);
 				} else {
