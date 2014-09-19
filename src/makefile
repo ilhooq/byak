@@ -52,13 +52,13 @@ endif
 
 ifeq ($(DEBUG), 1)
 	# Add GDB symbols
-	CFLAGS += -g -DDEBUG
+	CFLAGS += -g -DDEBUG -Wno-unused-function
 	OPTI =
 endif
 
 ifeq ($(DEBUG-PROFILE), 1)
 	# Add Gprof support
-	CFLAGS += -pg -DDEBUG
+	CFLAGS += -pg -DDEBUG -Wno-unused-function
 	LDFLAGS += -pg
 	OPTI =
 endif
