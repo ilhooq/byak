@@ -42,6 +42,27 @@ Position pos;
 
 static int movelistcount;
 
+static int position_canTakeEp(U64 from, U64 to)
+{
+	U64 king = pos.bb_pieces[K + pos.side];
+	U64 our_pieces = pos.bb_side[pos.side];
+	U64 otherQueenRooks = pos.bb_pieces[R + (1 ^ pos.side)] | pos.bb_pieces[Q + (1 ^ pos.side)];
+	U64 rank45 = (pos.side == WHITE) ? RANK5 : RANK4;
+
+	// Check if the pawn is not pinned on the rank when the last double move is cleared
+	if ((king & rank45) && (otherQueenRooks & rank45)) {
+		U64 last_double = (pos.side == WHITE)? bitboard_soutOne(to) : bitboard_nortOne(to);
+		U64 pinner = EMPTY;
+		pinner = bitboard_xrayRankAttacks(pos.bb_occupied ^ last_double, our_pieces, king) & otherQueenRooks;
+		if (pinner) {
+			U64 pinned = bitboard_getObstructed(pinner, king) & our_pieces;
+			if (pinned & from) return 0;
+		}
+	}
+
+	return 1;
+}
+
 void position_init()
 {
 	memset(pos.bb_pieces, 0, sizeof(pos.bb_pieces));
@@ -527,7 +548,7 @@ int position_generateMoves(Move *movelist)
 			}
 
 			/* En passant capture */
-			if (to_square == enpassant_mask && from_square & pawns) {
+			if (enpassant_mask && (to_square == enpassant_mask) && (from_square & pawns) && position_canTakeEp(from_square, enpassant_mask)) {
 				position_listAdd(movelist, from_square, to_square, ENPASSANT,1,0,0);
 			}
 
