@@ -70,7 +70,7 @@
 #define FILEG C64(0X4040404040404040)
 #define FILEH C64(0X8080808080808080)
 
-
+#define RANK18 C64(0xFF000000000000FF)
 
 /* Get the Less Signifiant one bit of a bitboard */
 #define LS1B(constantU64) ((constantU64) & -(constantU64))

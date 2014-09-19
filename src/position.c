@@ -20,7 +20,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-/*#include "util.h"*/
+
 #include "bitboard.h"
 #include "magicmoves.h"
 #include "position.h"
@@ -38,29 +38,402 @@
 	pos.attacks_to[bitboard_bitScanForward(to_square)] |= from_square;
 
 
+#define OUR_SIDE pos.side
+#define OTHER_SIDE (1 ^ pos.side)
+
+#define OUR_KING pos.bb_pieces[K + OUR_SIDE]
+#define OTHER_KING pos.bb_pieces[K + OTHER_SIDE]
+
+#define OUR_PAWNS pos.bb_pieces[P + OUR_SIDE]
+
+#define KNIGHTS (pos.bb_pieces[n] | pos.bb_pieces[N])
+#define KINGS (pos.bb_pieces[k] | pos.bb_pieces[K])
+#define QUEEN_ROOKS (pos.bb_pieces[Q] | pos.bb_pieces[q] | pos.bb_pieces[R] | pos.bb_pieces[r])
+#define QUEEN_BISHOPS (pos.bb_pieces[Q] | pos.bb_pieces[q] | pos.bb_pieces[B] | pos.bb_pieces[b])
+
+#define OTHER_QUEEN_ROOKS (pos.bb_pieces[R + OTHER_SIDE] | pos.bb_pieces[Q + OTHER_SIDE])
+#define OTHER_QUEEN_BISHOPS (pos.bb_pieces[B + OTHER_SIDE] | pos.bb_pieces[Q + OTHER_SIDE])
+
+#define OUR_PIECES pos.bb_side[OUR_SIDE]
+#define OTHER_PIECES pos.bb_side[OTHER_SIDE]
+
+#define W_ROCK_ATTACKED_KS ((pos.attacks_to[g1] | pos.attacks_to[f1]) & OTHER_PIECES)
+/* If b1 is attacked, it's not a problem to make the Queen side rock */
+#define W_ROCK_ATTACKED_QS ((pos.attacks_to[c1] | pos.attacks_to[d1]) & OTHER_PIECES)
+
+#define W_ROCK_OCCUPIED_KS ((SQ64(g1) | SQ64(f1)) & pos.bb_occupied)
+#define W_ROCK_OCCUPIED_QS ((SQ64(b1) | SQ64(c1) | SQ64(d1)) & pos.bb_occupied)
+
+#define B_ROCK_ATTACKED_KS ((pos.attacks_to[g8] | pos.attacks_to[f8]) & OTHER_PIECES)
+/* If b8 is attacked, it's not a problem to make the Queen side rock */
+#define B_ROCK_ATTACKED_QS ((pos.attacks_to[c8] | pos.attacks_to[d8]) & OTHER_PIECES)
+#define B_ROCK_OCCUPIED_KS ((SQ64(g8) | SQ64(f8)) & pos.bb_occupied)
+#define B_ROCK_OCCUPIED_QS ((SQ64(b8) | SQ64(c8) | SQ64(d8)) & pos.bb_occupied)
+
 Position pos;
 
 static int movelistcount;
 
-static int position_canTakeEp(U64 from, U64 to)
+static void INLINE position_refresh()
 {
-	U64 king = pos.bb_pieces[K + pos.side];
-	U64 our_pieces = pos.bb_side[pos.side];
-	U64 otherQueenRooks = pos.bb_pieces[R + (1 ^ pos.side)] | pos.bb_pieces[Q + (1 ^ pos.side)];
+	memset(pos.attacks_from, 0, sizeof(pos.attacks_from));
+	memset(pos.attacks_to, 0, sizeof(pos.attacks_to));
+	memset(pos.pinner, 0, sizeof(pos.pinner));
+
+	pos.pinned = EMPTY;
+	pos.in_check = 0;
+	pos.checkmated = 0;
+
+	pos.bb_side[WHITE] = pos.bb_pieces[P] | pos.bb_pieces[K] |
+				 pos.bb_pieces[Q] | pos.bb_pieces[N] |
+				 pos.bb_pieces[B] | pos.bb_pieces[R];
+
+	pos.bb_side[BLACK] = pos.bb_pieces[p] | pos.bb_pieces[k] |
+				 pos.bb_pieces[q] | pos.bb_pieces[n] |
+				 pos.bb_pieces[b] | pos.bb_pieces[r];
+
+	pos.bb_occupied = pos.bb_side[WHITE] | pos.bb_side[BLACK];
+	pos.bb_empty = ~pos.bb_occupied;
+}
+
+static void listAdd( Move *movelist, U64 from_square, U64 to_square, 
+TypeMove type, char capture, Piece promoted_piece, Piece captured_piece)
+{
+	Move * move = &movelist[movelistcount];
+	move->from = bitboard_bitScanForward(from_square);
+	move->to = bitboard_bitScanForward(to_square);
+	move->type = type;
+	move->capture = (capture)? capture : 0;
+	move->promoted_piece = (promoted_piece)? promoted_piece : NONE_PIECE;
+	// These will be determined when making move
+	move->captured_piece = NONE_PIECE;
+	move->ep = NONE_SQUARE;
+	move->castling_rights = 0;
+	movelistcount++;
+}
+
+static int canTakeEp(U64 from, U64 to)
+{
 	U64 rank45 = (pos.side == WHITE) ? RANK5 : RANK4;
 
 	// Check if the pawn is not pinned on the rank when the last double move is cleared
-	if ((king & rank45) && (otherQueenRooks & rank45)) {
+	if ((OUR_KING & rank45) && (OTHER_QUEEN_ROOKS & rank45)) {
 		U64 last_double = (pos.side == WHITE)? bitboard_soutOne(to) : bitboard_nortOne(to);
-		U64 pinner = EMPTY;
-		pinner = bitboard_xrayRankAttacks(pos.bb_occupied ^ last_double, our_pieces, king) & otherQueenRooks;
+		U64 pinner = bitboard_xrayRankAttacks(pos.bb_occupied ^ last_double, OUR_PIECES, OUR_KING) & OTHER_QUEEN_ROOKS;
 		if (pinner) {
-			U64 pinned = bitboard_getObstructed(pinner, king) & our_pieces;
+			U64 pinned = bitboard_getObstructed(pinner, OUR_KING) & OUR_PIECES;
 			if (pinned & from) return 0;
 		}
 	}
 
 	return 1;
+}
+
+static int INLINE canMove(U64 from_square, U64 to_square)
+{
+	/* Make sure that the oponent king is not on destination square */
+	if (to_square & OTHER_KING) {
+		return 0;
+	}
+
+	/* Need to make sure that king doesn't move into check */
+	if ((from_square & OUR_KING) && (pos.attacks_to[bitboard_bitScanForward(to_square)] & OTHER_PIECES)) {
+		return 0;
+	}
+
+	if (from_square & OUR_KING) {
+		U64 occupancy = pos.bb_occupied ^ OUR_KING;
+		if (bitboard_rankAttacks(occupancy, to_square) & OTHER_QUEEN_ROOKS) return 0;
+		if (bitboard_fileAttacks(occupancy, to_square) & OTHER_QUEEN_ROOKS) return 0;
+		if (bitboard_diagonalAttacks(occupancy, to_square) & OTHER_QUEEN_BISHOPS) return 0;
+	}
+
+	if (from_square & pos.pinned) {
+		U64 pinner = pos.pinner[bitboard_bitScanForward(from_square)];
+		/* Pinned piece can only move in the direction of the pinner attack ray */
+		/* Knights cannot move if pinned */
+		if (pinner & OTHER_QUEEN_BISHOPS) {
+			U64 diagNE = bitboard_getDiagNE(pinner);
+			if ((diagNE & from_square) && (diagNE & to_square)) return 1;
+			U64 diagNW = bitboard_getDiagNW(pinner);
+			if ((diagNW & from_square) && (diagNW & to_square)) return 1;
+		}
+
+		if (pinner & OTHER_QUEEN_ROOKS) {
+			U64 rank = bitboard_getRank(pinner);
+			if ((rank & from_square) && (rank & to_square)) return 1;
+			U64 file = bitboard_getFile(pinner);
+			if ((file & from_square) && (file & to_square)) return 1;
+		}
+		return 0;
+	}
+
+	return 1;
+}
+
+static void addPromotionMoves( Move *movelist, U64 from_square, U64 to_square, int capture)
+{
+	Square queen  = Q + pos.side;
+	Square bishop = B + pos.side;
+	Square knight = N + pos.side;
+	Square rook   = R + pos.side;
+
+	listAdd(movelist, from_square, to_square, PROMOTION, capture, queen, 0);
+	listAdd(movelist, from_square, to_square, PROMOTION, capture, bishop, 0);
+	listAdd(movelist, from_square, to_square, PROMOTION, capture, knight, 0);
+	listAdd(movelist, from_square, to_square, PROMOTION, capture, rook, 0);
+}
+
+void static INLINE genPinned()
+{
+	U64 pinned = EMPTY;
+	U64 pinner = EMPTY;
+	U64 sq = EMPTY;
+
+	pinner = bitboard_xrayFileAttacks(pos.bb_occupied, OUR_PIECES, OUR_KING) & OTHER_QUEEN_ROOKS;
+	pinner |= bitboard_xrayRankAttacks(pos.bb_occupied, OUR_PIECES, OUR_KING) & OTHER_QUEEN_ROOKS;
+	pinner |= bitboard_xrayDiagonalAttacks(pos.bb_occupied, OUR_PIECES, OUR_KING) & OTHER_QUEEN_BISHOPS;
+
+	while (pinner) {
+		sq  = LS1B(pinner);
+		pinned = bitboard_getObstructed(sq, OUR_KING) & OUR_PIECES;
+		pos.pinned |= pinned;
+		pos.pinner[bitboard_bitScanForward(pinned)] = sq;
+		pinner = RESET_LS1B(pinner);
+	}
+}
+
+
+/*
+   For this function, perfs are better without static and 
+   INLINE declaration probably because of linker optimizations.
+*/
+void genPiecesAttacks()
+{
+	U64 non_pawns = pos.bb_occupied & ~pos.bb_pieces[P] & ~pos.bb_pieces[p];
+	U64 from_square = EMPTY;
+	U64 moves = EMPTY;
+
+	while (non_pawns) {
+		from_square = LS1B(non_pawns);
+
+		if (from_square & KINGS) {
+			moves |= bitboard_getKingMoves(from_square & KINGS);
+		}
+
+		if (from_square & KNIGHTS) {
+			moves |= bitboard_getKnightMoves(from_square & KNIGHTS);
+		}
+
+		if (from_square & QUEEN_ROOKS) {
+			moves |= Rmagic(bitboard_bitScanForward(from_square & QUEEN_ROOKS), pos.bb_occupied);
+		}
+
+		if (from_square & QUEEN_BISHOPS) {
+			moves |= Bmagic(bitboard_bitScanForward(from_square & QUEEN_BISHOPS), pos.bb_occupied);
+		}
+
+		while (moves) {
+			POS_ADD_ATTACK(from_square, LS1B(moves));
+			moves = RESET_LS1B(moves);
+		}
+
+		non_pawns = RESET_LS1B(non_pawns);
+	}
+}
+
+static void genPawnsAttacks()
+{
+	/* produce pawn attacks. */
+	U64 from_square = EMPTY;
+	U64 to_square = EMPTY;
+	U64 left_attack = EMPTY;
+	U64 right_attack = EMPTY;
+	
+	int side = 0;
+	for (side=0; side < 2; side++) {
+		if (side == WHITE) {
+			left_attack  = bitboard_noWeOne(pos.bb_pieces[P]);
+			right_attack = bitboard_noEaOne(pos.bb_pieces[P]);
+		}
+		else {
+			left_attack  = bitboard_soWeOne(pos.bb_pieces[p]);
+			right_attack = bitboard_soEaOne(pos.bb_pieces[p]);
+		}
+
+		while (left_attack) {
+			to_square = LS1B(left_attack);
+			from_square = (side == WHITE) ? to_square >> 7 : to_square << 9;
+			POS_ADD_ATTACK(from_square, to_square);
+			left_attack = RESET_LS1B(left_attack);
+		}
+
+		while (right_attack) {
+			to_square = LS1B(right_attack);
+			from_square = (side == WHITE) ? to_square >> 9 : to_square << 7;
+			POS_ADD_ATTACK(from_square, to_square);
+			right_attack = RESET_LS1B(right_attack);
+		}
+	}
+}
+
+static void genCheckEvasions(Move *movelist)
+{
+	/* pos should only get called if we're in check */
+	assert(pos.in_check);
+
+	U64 king_attackers = pos.attacks_to[bitboard_bitScanForward(OUR_KING)] & OTHER_PIECES;
+
+	U64 from_square = EMPTY;
+	U64 to_square = EMPTY;
+
+	U64 enpassant_mask = (pos.enpassant != NONE_SQUARE) ? SQ64(pos.enpassant) : EMPTY;
+
+	// We can either
+	// 1. capture the attacking piece
+	// 2. block its path
+	// 3. move out of the way
+
+	if (bitboard_IPopCount(king_attackers) == 1) {
+		U64 blockers = EMPTY;
+
+		/*
+		###########################################################
+		1. Try to capture the attacking piece
+		###########################################################
+		*/
+		U64 our_attacking_pieces = pos.attacks_to[bitboard_bitScanForward(king_attackers)] & OUR_PIECES;
+
+		if (our_attacking_pieces & OUR_KING) {
+			// The king capture is processed in the Move out the way part
+			our_attacking_pieces ^= OUR_KING;
+		}
+
+		// Check for enpassant capture
+		if (enpassant_mask) {
+			// We know the king attacker is a pawn
+			if (bitboard_westOne(king_attackers) & OUR_PAWNS) {
+				from_square = bitboard_westOne(king_attackers) & OUR_PAWNS;
+				if (canMove(from_square, enpassant_mask)) {
+					listAdd(movelist, from_square, enpassant_mask, ENPASSANT,1,0,0);
+					our_attacking_pieces ^= from_square;
+				}
+			}
+			if (bitboard_eastOne(king_attackers) & OUR_PAWNS) {
+				from_square = bitboard_eastOne(king_attackers) & OUR_PAWNS;
+				if (canMove(from_square, enpassant_mask)) {
+					listAdd(movelist, from_square, enpassant_mask, ENPASSANT,1,0,0);
+					our_attacking_pieces ^= from_square;
+				}
+			}
+		}
+
+		while (our_attacking_pieces) {
+			from_square = LS1B(our_attacking_pieces);
+			to_square = pos.attacks_from[bitboard_bitScanForward(from_square)] & king_attackers;
+
+			if ((to_square & king_attackers) && canMove(from_square, to_square)) {
+				// Capture
+				if ((from_square & OUR_PAWNS) && (RANK18 & to_square)) {
+					// We have a capture and promotion
+					addPromotionMoves(movelist, from_square, to_square, 1);
+				} else {
+					listAdd(movelist, from_square, to_square, NORMAL,1,0,0);
+				}
+			}
+
+			our_attacking_pieces = RESET_LS1B(our_attacking_pieces);
+		}
+
+		/*
+		############################################################
+		# 2. Try to block the attacking ray
+		############################################################
+		*/
+		U64 obstructed = EMPTY;
+		U64 singlePushs = EMPTY;
+		U64 doublePushs = EMPTY;
+
+		if (pos.side == WHITE) {
+			singlePushs = bitboard_nortOne(pos.bb_pieces[P]) & pos.bb_empty;
+			doublePushs = bitboard_nortOne(singlePushs) & pos.bb_empty & RANK4;
+		}
+		else {
+			singlePushs = bitboard_soutOne(pos.bb_pieces[p]) & pos.bb_empty;
+			doublePushs = bitboard_soutOne(singlePushs) & pos.bb_empty & RANK5;
+		}
+
+		obstructed = bitboard_getObstructed(king_attackers, OUR_KING);
+
+		while (singlePushs) {
+			to_square = LS1B(singlePushs);
+			if (to_square & obstructed) {
+				from_square = (pos.side == WHITE) ? to_square >> 8 : to_square << 8;
+
+				if (canMove(from_square, to_square)) {
+					if (to_square & RANK18)
+						addPromotionMoves(movelist, from_square, to_square, 0);
+					else
+						listAdd(movelist, from_square, to_square, NORMAL,0,0,0);
+				}
+			}
+			singlePushs = RESET_LS1B(singlePushs);
+		}
+
+		while (doublePushs) {
+			to_square = LS1B(doublePushs);
+			if (to_square & obstructed) {
+				from_square = (pos.side == WHITE) ? to_square >> 16 : to_square << 16;
+				if (canMove(from_square, to_square)) {
+					listAdd(movelist, from_square, to_square, PAWN_DOUBLE,0,0,0);
+				}
+			}
+			doublePushs = RESET_LS1B(doublePushs);
+		}
+
+		while(obstructed) {
+			to_square = LS1B(obstructed);
+			blockers = pos.attacks_to[bitboard_bitScanForward(to_square)] & (OUR_PIECES & ~OUR_KING & ~OUR_PAWNS);
+			while(blockers) {
+				from_square = LS1B(blockers);
+				if (canMove(from_square, to_square)) {
+					listAdd(movelist, from_square, to_square, NORMAL,0,0,0);
+				}
+				blockers = RESET_LS1B(blockers);
+			}
+			obstructed = RESET_LS1B(obstructed);
+		}
+	}
+
+	/*
+	###############################################################
+	# 3. Move out the way
+	################################################################
+	*/
+
+	U64 kingMoves = bitboard_getKingMoves(OUR_KING) & (pos.bb_empty | OTHER_PIECES);
+
+	while(king_attackers) {
+		kingMoves &= ~pos.attacks_from[bitboard_bitScanForward(LS1B(king_attackers))];
+		king_attackers = RESET_LS1B(king_attackers);
+	}
+
+	while(kingMoves) {
+		to_square = LS1B(kingMoves);
+
+		// If the square is not attacked by enemy piece
+		if (canMove(OUR_KING, to_square)) {
+			if (to_square & OTHER_PIECES) {
+				// capture
+				listAdd(movelist, OUR_KING, to_square, NORMAL,1,0,0);
+			}
+			else {
+				// empty square
+				listAdd(movelist, OUR_KING, to_square, NORMAL,0,0,0);
+			}
+		}
+		kingMoves = RESET_LS1B(kingMoves);
+	}
 }
 
 void position_init()
@@ -242,30 +615,6 @@ int position_fromFen(const char *fen)
 	return 0;
 }
 
-
-
-void position_refresh()
-{
-	memset(pos.attacks_from, 0, sizeof(pos.attacks_from));
-	memset(pos.attacks_to, 0, sizeof(pos.attacks_to));
-	memset(pos.pinner, 0, sizeof(pos.pinner));
-
-	pos.pinned = EMPTY;
-	pos.in_check = 0;
-	pos.checkmated = 0;
-
-	pos.bb_side[WHITE] = pos.bb_pieces[P] | pos.bb_pieces[K] |
-				 pos.bb_pieces[Q] | pos.bb_pieces[N] |
-				 pos.bb_pieces[B] | pos.bb_pieces[R];
-
-	pos.bb_side[BLACK] = pos.bb_pieces[p] | pos.bb_pieces[k] |
-				 pos.bb_pieces[q] | pos.bb_pieces[n] |
-				 pos.bb_pieces[b] | pos.bb_pieces[r];
-
-	pos.bb_occupied = pos.bb_side[WHITE] | pos.bb_side[BLACK];
-	pos.bb_empty = ~pos.bb_occupied;
-}
-
 void position_makeMove(Move *move)
 {
 	U64 bb_from   = SQ64(move->from);
@@ -379,7 +728,6 @@ void position_makeMove(Move *move)
 
 void position_undoMove(Move *move)
 {
-	// int otherSide = 1 ^ pos.side;
 	U64 from_square = SQ64(move->to);
 	U64 to_square =  SQ64(move->from);
 	U64 bb_fromTo = to_square | from_square;
@@ -462,51 +810,19 @@ void position_undoMove(Move *move)
 	position_refresh();
 }
 
-void position_listAdd( Move *movelist, U64 from_square, U64 to_square, 
-TypeMove type, char capture, Piece promoted_piece, Piece captured_piece)
-{
-	Move * move = &movelist[movelistcount];
-	move->from = bitboard_bitScanForward(from_square);
-	move->to = bitboard_bitScanForward(to_square);
-	move->type = type;
-	move->capture = (capture)? capture : 0;
-	move->promoted_piece = (promoted_piece)? promoted_piece : NONE_PIECE;
-	// These will be determined when making move
-	move->captured_piece = NONE_PIECE;
-	move->ep = NONE_SQUARE;
-	move->castling_rights = 0;
-	movelistcount++;
-}
-
-
 int position_generateMoves(Move *movelist)
 {
-	int otherSide = 1 ^ pos.side;
-	U64 king = pos.bb_pieces[K + pos.side];
-	U64 other_pieces = pos.bb_side[otherSide];
-	U64 pieces = EMPTY;
-	U64 pawns = EMPTY;
-	U64 rank18 = RANK1 | RANK8;
 	movelistcount = 0;
 
-	/*
-	check to make sure we have a king.
-	If we don't, we shouldn't be here.
-	*/
-	if (king == 0) {
-		printf("Error: one of the kings is missing.\n");
-		return movelistcount;
-	}
-
-	position_generatePinned();
-	position_generateAttacks();
-	position_generatePawnsAttacks();
+	genPinned();
+	genPiecesAttacks();
+	genPawnsAttacks();
 
 	/* Are we in check?! */
-	if (pos.attacks_to[bitboard_bitScanForward(king)] & other_pieces) {
+	if (pos.attacks_to[bitboard_bitScanForward(OUR_KING)] & OTHER_PIECES) {
 		/* we are in check, find check evasions to get out */
 		pos.in_check = 1;
-		position_generateCheckEvasions(movelist);
+		genCheckEvasions(movelist);
 
 		if (!movelistcount) { 
 			/* No moves... King is checkmated :( */
@@ -520,54 +836,46 @@ int position_generateMoves(Move *movelist)
 	At pos point we already know the attacks_from for all
 	pieces...we just need to remove our own pieces from the attack.
 	*/
-	if (pos.side == WHITE) {
-		pieces = pos.bb_side[WHITE];
-		pawns = pos.bb_pieces[P];
-	}
-	else {
-		pieces = pos.bb_side[BLACK];
-		pawns = pos.bb_pieces[p];
-	}
 
 	U64 from_square = EMPTY;
 	U64 to_square = EMPTY;
 	U64 moves = EMPTY;
+	U64 pieces = OUR_PIECES;
 
-	U64 enpassant_mask = (pos.enpassant != NONE_SQUARE) ? C64(1) << pos.enpassant : EMPTY;
+	U64 enpassant_mask = (pos.enpassant != NONE_SQUARE) ? SQ64(pos.enpassant) : EMPTY;
 
 	while (pieces) {
 		from_square = LS1B(pieces);
-		moves = pos.attacks_from[bitboard_bitScanForward(from_square)]
-				& (other_pieces | pos.bb_empty);
+		moves = pos.attacks_from[bitboard_bitScanForward(from_square)] & (OTHER_PIECES | pos.bb_empty);
 		while (moves) {
 			to_square = LS1B(moves);
 
-			if (!position_canMove(from_square, to_square)) {
+			if (!canMove(from_square, to_square)) {
 				moves = RESET_LS1B(moves);
 				continue;
 			}
 
 			/* En passant capture */
-			if (enpassant_mask && (to_square == enpassant_mask) && (from_square & pawns) && position_canTakeEp(from_square, enpassant_mask)) {
-				position_listAdd(movelist, from_square, to_square, ENPASSANT,1,0,0);
+			if (enpassant_mask && (to_square == enpassant_mask) && (from_square & OUR_PAWNS) && canTakeEp(from_square, enpassant_mask)) {
+				listAdd(movelist, from_square, to_square, ENPASSANT,1,0,0);
 			}
 
 			/* Normal capture */
-			else if (to_square & other_pieces) {
+			else if (to_square & OTHER_PIECES) {
 
-				if ((from_square & pawns) && (rank18 & to_square)) {
+				if ((from_square & OUR_PAWNS) && (RANK18 & to_square)) {
 					/* We have a capture and promotion */
-					position_generatePromotionMoves(movelist, from_square, to_square, 1);
+					addPromotionMoves(movelist, from_square, to_square, 1);
 				}
 
 				else {
-					position_listAdd(movelist, from_square, to_square, NORMAL,1,0,0);
+					listAdd(movelist, from_square, to_square, NORMAL,1,0,0);
 				}
 			}
 
 			/* Empty square */
-			else if (from_square & ~pawns) {
-				position_listAdd(movelist, from_square, to_square, NORMAL,0,0,0);
+			else if (from_square & ~OUR_PAWNS) {
+				listAdd(movelist, from_square, to_square, NORMAL,0,0,0);
 			}
 
 			moves = RESET_LS1B(moves);
@@ -576,50 +884,28 @@ int position_generateMoves(Move *movelist)
 	}
 
 	/* Generate castling moves */
-	U64 attacked_ks = EMPTY;
-	U64 attacked_qs = EMPTY;
-	U64 occupied_ks = EMPTY;
-	U64 occupied_qs = EMPTY;
+
 	if (pos.side == WHITE && (pos.castling_rights & (W_CASTLE_K|W_CASTLE_Q))) {
-		attacked_ks = (pos.attacks_to[g1] | pos.attacks_to[f1])
-						& other_pieces;
-		/* If b1 is attacked, it's not a problem to make the Queen side rock */
-		attacked_qs = (pos.attacks_to[c1] | pos.attacks_to[d1])
-						& other_pieces;
-		occupied_ks = (SQ64(g1) | SQ64(f1)) & pos.bb_occupied;
-		occupied_qs = (SQ64(b1) | SQ64(c1) | SQ64(d1)) & pos.bb_occupied;
-		if ((pos.castling_rights & W_CASTLE_K) &&
-			pos.bb_pieces[R] & SQ64(h1) &&
-			!attacked_ks && !occupied_ks) {
-			position_listAdd(movelist, king, SQ64(g1), CASTLE,0,0,0);
+
+		if ((pos.castling_rights & W_CASTLE_K) && pos.bb_pieces[R] & SQ64(h1) && !W_ROCK_ATTACKED_KS && !W_ROCK_OCCUPIED_KS) {
+			listAdd(movelist, OUR_KING, SQ64(g1), CASTLE,0,0,0);
 		}
 
-		if ((pos.castling_rights & W_CASTLE_Q) &&
-			pos.bb_pieces[R] & SQ64(a1) &&
-			!attacked_qs && !occupied_qs) {
-			position_listAdd(movelist, king, SQ64(c1), CASTLE,0,0,0);
+		if ((pos.castling_rights & W_CASTLE_Q) && pos.bb_pieces[R] & SQ64(a1) && !W_ROCK_ATTACKED_QS && !W_ROCK_OCCUPIED_QS) {
+			listAdd(movelist, OUR_KING, SQ64(c1), CASTLE,0,0,0);
 		}
 	}
 	else if (pos.side == BLACK && (pos.castling_rights & (B_CASTLE_K|B_CASTLE_Q))) {
-		attacked_ks = (pos.attacks_to[g8] | pos.attacks_to[f8]) 
-					& other_pieces;
-		/* If b8 is attacked, it's not a problem to make the Queen side rock */
-		attacked_qs = (pos.attacks_to[c8] |
-					   pos.attacks_to[d8]) & other_pieces;
-		occupied_ks = (SQ64(g8) | SQ64(f8)) & pos.bb_occupied;
-		occupied_qs = (SQ64(b8) | SQ64(c8) | SQ64(d8)) & pos.bb_occupied;
-		if ((pos.castling_rights & B_CASTLE_K) &&
-			pos.bb_pieces[r] & SQ64(h8) &&
-			!attacked_ks && !occupied_ks) {
-			position_listAdd(movelist, king, SQ64(g8), CASTLE,0,0,0);
+
+		if ((pos.castling_rights & B_CASTLE_K) && pos.bb_pieces[r] & SQ64(h8) && !B_ROCK_ATTACKED_KS && !B_ROCK_OCCUPIED_KS) {
+			listAdd(movelist, OUR_KING, SQ64(g8), CASTLE,0,0,0);
 		}
 
-		if ((pos.castling_rights & B_CASTLE_Q) &&
-			pos.bb_pieces[r] & SQ64(a8) &&
-			! attacked_qs && !occupied_qs) {
-			position_listAdd(movelist, king, SQ64(c8), CASTLE,0,0,0);
+		if ((pos.castling_rights & B_CASTLE_Q) && pos.bb_pieces[r] & SQ64(a8) && !B_ROCK_ATTACKED_QS && !B_ROCK_OCCUPIED_QS) {
+			listAdd(movelist, OUR_KING, SQ64(c8), CASTLE,0,0,0);
 		}
 	}
+
 	/*
 	* produce single pawn moves...these are not handled in generate_attacks
 	* since pawns can only attack diagonally (or enpassant)
@@ -639,33 +925,27 @@ int position_generateMoves(Move *movelist)
 
 	while (singlePushs) {
 		to_square = LS1B(singlePushs);
-		if (pos.side == WHITE)
-			from_square = to_square >> 8;
-		else
-			from_square = to_square << 8;
+		from_square = (pos.side == WHITE) ? to_square >> 8 : to_square << 8;
 
-		if ((from_square & pos.pinned) && position_canMove(from_square, to_square)) {
+		if ((from_square & pos.pinned) && canMove(from_square, to_square)) {
 			pos.pinned ^= from_square;
 		}
 
 		if (from_square & ~pos.pinned) {
 			/* Check promotion */
-			if (to_square & rank18)
-				position_generatePromotionMoves(movelist, from_square, to_square, 0);
+			if (to_square & RANK18)
+				addPromotionMoves(movelist, from_square, to_square, 0);
 			else
-				position_listAdd(movelist, from_square, to_square, NORMAL,0,0,0);
+				listAdd(movelist, from_square, to_square, NORMAL,0,0,0);
 		}
 		singlePushs = RESET_LS1B(singlePushs);
 	}
 
 	while (doublePushs) {
 		to_square = LS1B(doublePushs);
-		if (pos.side == WHITE)
-			from_square = to_square >> 16;
-		else
-			from_square = to_square << 16;
+		from_square = (pos.side == WHITE) ? to_square >> 16 : to_square << 16;
 		if (from_square & ~pos.pinned) {
-			position_listAdd(movelist, from_square, to_square, PAWN_DOUBLE,0,0,0);
+			listAdd(movelist, from_square, to_square, PAWN_DOUBLE,0,0,0);
 		}
 		doublePushs = RESET_LS1B(doublePushs);
 	}
@@ -673,382 +953,3 @@ int position_generateMoves(Move *movelist)
 	return movelistcount;
 }
 
-void position_generateAttacks()
-{
-	U64 knights = pos.bb_pieces[n] | pos.bb_pieces[N];
-	U64 kings = pos.bb_pieces[k] | pos.bb_pieces[K];
-	U64 queen_rooks = pos.bb_pieces[Q] | pos.bb_pieces[q] | pos.bb_pieces[R] | pos.bb_pieces[r];
-	U64 queen_bishops = pos.bb_pieces[Q] | pos.bb_pieces[q] | pos.bb_pieces[B] | pos.bb_pieces[b];
-	U64 non_pawns = pos.bb_occupied & ~pos.bb_pieces[P] & ~pos.bb_pieces[p];
-	U64 from_square = EMPTY;
-	U64 to_square = EMPTY;
-	// U64 rank_pieces = EMPTY;
-	// U64 file_pieces = EMPTY;
-	// U64 ne_pieces = EMPTY;
-	// U64 nw_pieces = EMPTY;
-	U64 moves = EMPTY;
-
-	while (non_pawns) {
-		from_square = LS1B(non_pawns);
-
-		if (from_square & kings) {
-			moves |= bitboard_getKingMoves(from_square & kings);
-		}
-
-		if (from_square & knights) {
-			moves |= bitboard_getKnightMoves(from_square & knights);
-		}
-
-		if (from_square & queen_rooks) {
-			// rank_pieces = bitboard_getRank(from_square & queen_rooks) & pos.bb_occupied;
-			// file_pieces = bitboard_getFile(from_square & queen_rooks) & pos.bb_occupied;
-			//moves |= RmagicNOMASK(bitboard_bitScanForward(from_square & queen_rooks), file_pieces | rank_pieces);
-			// Time Consuming
-			moves |= Rmagic(bitboard_bitScanForward(from_square & queen_rooks), pos.bb_occupied);
-		}
-
-		if (from_square & queen_bishops) {
-			// ne_pieces = bitboard_getDiagNE(from_square & queen_bishops) & pos.bb_occupied;
-			// nw_pieces = bitboard_getDiagNW(from_square & queen_bishops) & pos.bb_occupied;
-			// moves |= BmagicNOMASK(bitboard_bitScanForward(from_square & queen_bishops), ne_pieces | nw_pieces);
-			// Time Consuming
-			moves |= Bmagic(bitboard_bitScanForward(from_square & queen_bishops), pos.bb_occupied);
-		}
-
-		while (moves) {
-			to_square = LS1B(moves);
-			POS_ADD_ATTACK(from_square, to_square);
-			moves = RESET_LS1B(moves);
-		}
-
-		non_pawns = RESET_LS1B(non_pawns);
-	}
-}
-
-void position_generatePawnsAttacks()
-{
-	/* produce pawn attacks. */
-	U64 from_square = EMPTY;
-	U64 to_square = EMPTY;
-	U64 left_attack = EMPTY;
-	U64 right_attack = EMPTY;
-	
-	int side = 0;
-	for (side=0; side < 2; side++) {
-		if (side == WHITE) {
-			left_attack  = bitboard_noWeOne(pos.bb_pieces[P]);
-			right_attack = bitboard_noEaOne(pos.bb_pieces[P]);
-		}
-		else {
-			left_attack  = bitboard_soWeOne(pos.bb_pieces[p]);
-			right_attack = bitboard_soEaOne(pos.bb_pieces[p]);
-		}
-
-		while (left_attack) {
-			to_square = LS1B(left_attack);
-			from_square = (side == WHITE) ? to_square >> 7 : to_square << 9;
-			POS_ADD_ATTACK(from_square, to_square);
-			left_attack = RESET_LS1B(left_attack);
-		}
-
-		while (right_attack) {
-			to_square = LS1B(right_attack);
-			from_square = (side == WHITE) ? to_square >> 9 : to_square << 7;
-			POS_ADD_ATTACK(from_square, to_square);
-			right_attack = RESET_LS1B(right_attack);
-		}
-	}
-}
-
-void position_generateCheckEvasions( Move *movelist)
-{
-	/* pos should only get called if we're in check */
-	assert(pos.in_check);
-	int otherSide = 1 ^ pos.side;
-
-	U64 our_pieces = pos.bb_side[pos.side];
-	U64 other_pieces = pos.bb_side[otherSide];
-	U64 king = pos.bb_pieces[K + pos.side];
-	U64 king_attackers = pos.attacks_to[bitboard_bitScanForward(king)] & other_pieces;
-	U64 king_attacker = EMPTY;
-	int num_attackers = bitboard_IPopCount(king_attackers);
-
-	U64 pawns = EMPTY;
-
-	U64 our_attacking_pieces = EMPTY;
-	U64 rank18 = RANK1 | RANK8;
-	U64 from_square = EMPTY;
-	U64 to_square = EMPTY;
-
-	U64 enpassant_mask = (pos.enpassant != NONE_SQUARE) ? C64(1) << pos.enpassant : EMPTY;
-
-	// We can either
-	// 1. capture the attacking piece
-	// 2. block its path
-	// 3. move out of the way
-
-	if (num_attackers == 1) {
-		U64 blockers = EMPTY;
-		// U64 occupancy = EMPTY;
-		// U64 pinned = EMPTY;
-		king_attacker = king_attackers;
-		/*
-		###########################################################
-		1. Try to capture the attacking piece
-		###########################################################
-		*/
-		our_attacking_pieces = pos.attacks_to[bitboard_bitScanForward(king_attacker)] 
-								& pos.bb_side[pos.side];
-
-		if (our_attacking_pieces & king) {
-			// The king capture is processed in the Move out the way part
-			our_attacking_pieces ^= king;
-		}
-		
-		pawns = pos.bb_pieces[P + pos.side];
-
-		// Check for enpassant capture
-		if (enpassant_mask) {
-			// We know the king attacker is a pawn
-			if (bitboard_westOne(king_attacker) & pawns) {
-				from_square = bitboard_westOne(king_attacker) & pawns;
-				if (position_canMove(from_square, enpassant_mask)) {
-					position_listAdd(movelist, from_square, enpassant_mask, ENPASSANT,1,0,0);
-					our_attacking_pieces ^= from_square;
-				}
-			}
-			if (bitboard_eastOne(king_attacker) & pawns) {
-				from_square = bitboard_eastOne(king_attacker) & pawns;
-				if (position_canMove(from_square, enpassant_mask)) {
-					position_listAdd(movelist, from_square, enpassant_mask, ENPASSANT,1,0,0);
-					our_attacking_pieces ^= from_square;
-				}
-			}
-		}
-
-		while (our_attacking_pieces) {
-			from_square = LS1B(our_attacking_pieces);
-			to_square = pos.attacks_from[bitboard_bitScanForward(from_square)] & king_attacker;
-
-			if ((to_square & king_attacker) && position_canMove(from_square, to_square)) {
-				// Capture
-				if ((from_square & pawns) && (rank18 & to_square)) {
-					// We have a capture and promotion
-					position_generatePromotionMoves(movelist, from_square, to_square, 1);
-				} else {
-					position_listAdd(movelist, from_square, to_square, NORMAL,1,0,0);
-				}
-			}
-
-			our_attacking_pieces = RESET_LS1B(our_attacking_pieces);
-		}
-
-		/*
-		############################################################
-		# 2. Try to block the attacking ray
-		############################################################
-		*/
-		U64 obstructed = EMPTY;
-		U64 singlePushs = EMPTY;
-		U64 doublePushs = EMPTY;
-
-		if (pos.side == WHITE) {
-			our_pieces = pos.bb_pieces[R] | pos.bb_pieces[B]
-						  | pos.bb_pieces[Q] | pos.bb_pieces[N];
-			singlePushs = bitboard_nortOne(pos.bb_pieces[P]) & pos.bb_empty;
-			doublePushs = bitboard_nortOne(singlePushs) & pos.bb_empty & RANK4;
-		}
-		else {
-			our_pieces = pos.bb_pieces[r] | pos.bb_pieces[b]
-						  | pos.bb_pieces[q] | pos.bb_pieces[n];
-			singlePushs = bitboard_soutOne(pos.bb_pieces[p]) & pos.bb_empty;
-			doublePushs = bitboard_soutOne(singlePushs) & pos.bb_empty & RANK5;
-		}
-
-		obstructed = bitboard_getObstructed(king_attacker, king);
-
-		while (singlePushs) {
-			to_square = LS1B(singlePushs);
-			if (to_square & obstructed) {
-				from_square = (pos.side == WHITE) ? to_square >> 8 : to_square << 8;
-
-				if (position_canMove(from_square, to_square)) {
-					if (to_square & rank18)
-						position_generatePromotionMoves(movelist, from_square, to_square, 0);
-					else
-						position_listAdd(movelist, from_square, to_square, NORMAL,0,0,0);
-				}
-			}
-			singlePushs = RESET_LS1B(singlePushs);
-		}
-
-		while (doublePushs) {
-			to_square = LS1B(doublePushs);
-			if (to_square & obstructed) {
-				from_square = (pos.side == WHITE) ? to_square >> 16 : to_square << 16;
-				if (position_canMove(from_square, to_square)) {
-					position_listAdd(movelist, from_square, to_square, PAWN_DOUBLE,0,0,0);
-				}
-			}
-			doublePushs = RESET_LS1B(doublePushs);
-		}
-
-		while(obstructed) {
-			to_square = LS1B(obstructed);
-			blockers = pos.attacks_to[bitboard_bitScanForward(to_square)] & our_pieces;
-			while(blockers) {
-				from_square = LS1B(blockers);
-				if (position_canMove(from_square, to_square)) {
-					position_listAdd(movelist, from_square, to_square, NORMAL,0,0,0);
-				}
-				blockers = RESET_LS1B(blockers);
-			}
-			obstructed = RESET_LS1B(obstructed);
-		}
-	}
-
-	/*
-	###############################################################
-	# 3. Move out the way
-	################################################################
-	*/
-
-	U64 kingMoves    = bitboard_getKingMoves(king) & (pos.bb_empty | other_pieces);
-
-	while(king_attackers) {
-		king_attacker = LS1B(king_attackers);
-		kingMoves &= ~pos.attacks_from[bitboard_bitScanForward(king_attacker)];
-		king_attackers = RESET_LS1B(king_attackers);
-	}
-
-	while(kingMoves) {
-		to_square = LS1B(kingMoves);
-
-		// If the square is not attacked by enemy piece
-		if (position_canMove(king, to_square)) {
-			if (to_square & other_pieces) {
-				// capture
-				position_listAdd(movelist, king, to_square, NORMAL,1,0,0);
-			}
-			else {
-				// empty square
-				position_listAdd(movelist, king, to_square, NORMAL,0,0,0);
-			}
-		}
-		kingMoves = RESET_LS1B(kingMoves);
-	}
-}
-
-
-void position_generatePinned()
-{
-	U64 pinned = EMPTY;
-	U64 pinner = EMPTY;
-	U64 king = EMPTY;
-	U64 QueenRooks = EMPTY;
-	U64 QueenBishops = EMPTY;
-	U64 blockers = EMPTY;
-	U64 sq = EMPTY;
-	int otherSide = 1 ^ pos.side;
-
-	king = pos.bb_pieces[K + pos.side];
-	QueenRooks = pos.bb_pieces[R + otherSide] | pos.bb_pieces[Q + otherSide];
-	QueenBishops = pos.bb_pieces[B + otherSide] | pos.bb_pieces[Q + otherSide];
-	blockers = pos.bb_side[pos.side];
-
-	pinner = bitboard_xrayFileAttacks(pos.bb_occupied, blockers, king) & QueenRooks;
-	pinner |= bitboard_xrayRankAttacks(pos.bb_occupied, blockers, king) & QueenRooks;
-	pinner |= bitboard_xrayDiagonalAttacks(pos.bb_occupied, blockers, king) & QueenBishops;
-
-	while (pinner) {
-		sq  = LS1B(pinner);
-		pinned = bitboard_getObstructed(sq, king) & blockers;
-		pos.pinned |= pinned;
-		// pos.pinner[bitboard_bitScanForward(pinned)] |= pinner;
-		pos.pinner[bitboard_bitScanForward(pinned)] = sq;
-		pinner = RESET_LS1B(pinner);
-	}
-}
-
-void position_generatePromotionMoves( Move *movelist, U64 from_square, U64 to_square, int capture)
-{
-	Square queen  = Q + pos.side;
-	Square bishop = B + pos.side;
-	Square knight = N + pos.side;
-	Square rook   = R + pos.side;
-
-	if (capture) {
-		position_listAdd(movelist, from_square, to_square, PROMOTION,1,queen,0);
-		position_listAdd(movelist, from_square, to_square, PROMOTION,1,bishop,0);
-		position_listAdd(movelist, from_square, to_square, PROMOTION,1,knight,0);
-		position_listAdd(movelist, from_square, to_square, PROMOTION,1,rook,0);
-	}
-	else {
-		position_listAdd(movelist, from_square, to_square, PROMOTION,0,queen,0);
-		position_listAdd(movelist, from_square, to_square, PROMOTION,0,bishop,0);
-		position_listAdd(movelist, from_square, to_square, PROMOTION,0,knight,0);
-		position_listAdd(movelist, from_square, to_square, PROMOTION,0,rook,0);
-	}
-}
-
-int INLINE position_canMove(U64 from_square, U64 to_square)
-{
-	int otherSide = 1 ^ pos.side;
-	U64 king = pos.bb_pieces[K + pos.side];
-	U64 other_king = pos.bb_pieces[K + otherSide];
-	U64 other_pieces = pos.bb_side[otherSide];
-
-	U64 otherQueenRooks = pos.bb_pieces[R + otherSide] | pos.bb_pieces[Q + otherSide];
-	U64 otherQueenBishops = pos.bb_pieces[B + otherSide] | pos.bb_pieces[Q + otherSide];
-	U64 pinner = EMPTY;
-	U64 occupancy = EMPTY;
-
-	/* Make sure that the oponent king is not on destination square */
-	if (to_square & other_king) {
-		return 0;
-	}
-
-	/* Need to make sure that king doesn't move into check */
-	if ((from_square & king) && (pos.attacks_to[bitboard_bitScanForward(to_square)] & other_pieces)) {
-		return 0;
-	}
-
-	if (from_square & king) {
-		occupancy = pos.bb_occupied ^ king;
-		if (bitboard_rankAttacks(occupancy, to_square) & otherQueenRooks) {
-			return 0;
-		}
-		if (bitboard_fileAttacks(occupancy, to_square) & otherQueenRooks) {
-			return 0;
-		}
-		if (bitboard_diagonalAttacks(occupancy, to_square) & otherQueenBishops) {
-			return 0;
-		}
-	}
-
-	if (from_square & pos.pinned) {
-		pinner = pos.pinner[bitboard_bitScanForward(from_square)];
-		/* Pinned piece can only move in the direction of the pinner attack ray */
-		/* Knights cannot move if pinned */
-		if (pinner & otherQueenBishops) {
-			if ((bitboard_getDiagNE(pinner) & from_square) && (bitboard_getDiagNE(pinner) & to_square)) {
-				return 1;
-			}
-			else if ((bitboard_getDiagNW(pinner) & from_square) && (bitboard_getDiagNW(pinner) & to_square)) {
-				return 1;
-			}
-		}
-
-		if (pinner & otherQueenRooks) {
-			if ((bitboard_getRank(pinner) & from_square) && (bitboard_getRank(pinner) & to_square)) {
-				return 1;
-			}
-			else if ((bitboard_getFile(pinner) & from_square) && (bitboard_getFile(pinner) & to_square)) {
-				return 1;
-			}
-		}
-		return 0;
-	}
-
-	return 1;
-}

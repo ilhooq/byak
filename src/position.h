@@ -18,10 +18,8 @@
 
 #ifndef POSITION_H
 #define POSITION_H
-#include "bitboard.h"
-#include "pieces.h"
+#include "types.h"
 #include "move.h"
-#include "util.h"
 
 #define WHITE 0
 #define BLACK 1
@@ -75,39 +73,31 @@ void position_init();
 
 /**
  * Fen parser
- * @param Position
- * @param char* the fen string
+ * @param char* the fen string to parse
  * @return 0 if OK ether -1 if an error occured
  */
 int position_fromFen(const char *fen);
 
+/**
+ * Display the board
+ */
 void position_display();
-
-void position_refresh();
-
-void position_makeMove(Move *move);
-
-void position_undoMove(Move *move);
-
-// INLINE void position_addAttack(U64 from_square, U64 to_square);
 
 /**
  * Generate all legal moves
+ * @param movelist pointer to a moves array
  */
 int position_generateMoves(Move *movelist);
 
-void position_generateAttacks();
+/**
+ * Make a move
+ */
+void position_makeMove(Move *move);
 
-void position_generatePawnsAttacks();
+/**
+ * Undo a move
+ */
+void position_undoMove(Move *move);
 
-void position_generateCheckEvasions(Move *movelist);
-
-void position_generatePinned();
-
-void position_listAdd(Move *movelist, U64 from_square, U64 to_square, TypeMove type, char capture, Piece promoted_piece, Piece captured_piece);
-
-void position_generatePromotionMoves(Move *movelist, U64 from_square, U64 to_square, int capture);
-
-int INLINE position_canMove(U64 from_square, U64 to_square);
 
 #endif
