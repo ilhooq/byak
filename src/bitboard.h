@@ -81,6 +81,30 @@
 /* Convert a square to bitboard */
 #define SQ64(constantINT) ((C64(1)) << (constantINT))
 
+/* --- Shiffting macros --- */
+
+#define bitboard_soutOne(constantU64) ((constantU64) >> 8)
+
+#define bitboard_nortOne(constantU64) ((constantU64) << 8)
+
+/* (bb << 1) & ~FILEA */
+#define bitboard_eastOne(constantU64) (((constantU64) << 1) & C64(0xfefefefefefefefe))
+
+/* (bb << 9) & ~FILEA */
+#define bitboard_noEaOne(constantU64) (((constantU64) << 9) & C64(0xfefefefefefefefe))
+
+/* (bb >> 7) & ~FILEA */
+#define bitboard_soEaOne(constantU64) (((constantU64) >> 7) & C64(0xfefefefefefefefe))
+
+/* (bb >> 1) & ~FILEH */
+#define bitboard_westOne(constantU64) (((constantU64) >> 1) & C64(0x7f7f7f7f7f7f7f7f))
+
+/* (bb >> 9) & ~FILEH */
+#define bitboard_soWeOne(constantU64) (((constantU64) >> 9) & C64(0x7f7f7f7f7f7f7f7f))
+
+/* (bb << 7) & ~FILEH */
+#define bitboard_noWeOne(constantU64) (((constantU64) << 7) & C64(0x7f7f7f7f7f7f7f7f))
+
 
 typedef enum enumSquare {
 	a1, b1, c1, d1, e1, f1, g1, h1, /*  0 .. 7  */
@@ -122,56 +146,15 @@ extern U64 diag_mask_nw[64];
 extern U64 obstructed_mask[64][64];
 
 
-int bitboard_IPopCount(U64 x);
-
-/**
-* Shiffting methods
-*/
-U64 static INLINE bitboard_soutOne(U64 bb)
-{
-	return bb >> 8;
+static int INLINE bitboard_IPopCount(U64 x) {
+	int count = 0;
+	while (x) {
+		count++;
+		// x &= x - 1; // reset LS1B
+		x = RESET_LS1B(x);
+	}
+	return count;
 }
-
-U64 static INLINE bitboard_nortOne(U64 bb)
-{
-	return  bb << 8;
-}
-
-U64 static INLINE bitboard_eastOne(U64 bb)
-{
-	/*		(bb << 1) & ~FILEA */
-	return (bb << 1) & C64(0xfefefefefefefefe);
-}
-
-U64 static INLINE bitboard_noEaOne(U64 bb)
-{
-	/*		(bb << 9) & ~FILEA */
-	return (bb << 9) & C64(0xfefefefefefefefe);
-}
-
-U64 static INLINE bitboard_soEaOne(U64 bb)
-{
-	/*		(bb >> 7) & ~FILEA */
-	return (bb >> 7) & C64(0xfefefefefefefefe);
-}
-
-U64 static INLINE bitboard_westOne(U64 bb)
-{
-	/*		(bb >> 1) & ~FILEH */
-	return (bb >> 1) & C64(0x7f7f7f7f7f7f7f7f);
-}
-
-U64 static INLINE bitboard_soWeOne(U64 bb) {
-	/*		(bb >> 9) & ~FILEH */
-	return (bb >> 9) & C64(0x7f7f7f7f7f7f7f7f);
-}
-
-U64 static INLINE bitboard_noWeOne(U64 bb)
-{
-	/*		(bb << 7) & ~FILEH */
-	return (bb << 7) & C64(0x7f7f7f7f7f7f7f7f);
-}
-
 
 void bitboard_init();
 

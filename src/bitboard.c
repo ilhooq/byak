@@ -48,7 +48,7 @@ U64 diag_mask_nw[64];
 
 U64 obstructed_mask[64][64];
 
-/** Private function to init king_moves */
+/** Init king_moves */
 static void gen_king_moves()
 {
 	int i=0;
@@ -65,7 +65,7 @@ static void gen_king_moves()
 	}
 }
 
-/** Private function to init knight_moves */
+/** Init knight_moves */
 static void gen_knight_moves()
 {
 	int i=0;
@@ -90,6 +90,7 @@ static void gen_knight_moves()
 	}
 }
 
+/** Init files */
 static void gen_files()
 {
 	int count = 0, i=0, j=0;
@@ -102,6 +103,7 @@ static void gen_files()
 	}
 }
 
+/** Init ranks */
 static void  gen_ranks()
 {
 	int count = 0, i=0, j=0;
@@ -126,11 +128,7 @@ static void gen_diag_ne()
 	for (i=0; i < 8; i++) {
 		diag_mask_ne[i] = EMPTY;
 		for (j=0 ; j < (8-i); j++) {
-			diag_mask_ne[i] |= C64(1) << (i+9*j);
-			/*
-			int opp = i+9*j;
-			printf("square : %i - opposite :%i\n", i, opp );
-			*/
+			diag_mask_ne[i] |= SQ64(i+9*j);
 		}
 
 		for (j=0; j < (8-i); j++) {
@@ -143,11 +141,7 @@ static void gen_diag_ne()
 		diag_mask_ne[i] = EMPTY;
 
 		for (j=0 ; j < (i-55); j++) {
-			diag_mask_ne[i] |= C64(1) << (i-9*j);
-			/*
-			int opp = i-9*j;
-			printf("square : %i - opposite :%i\n", i, opp );
-			*/
+			diag_mask_ne[i] |= SQ64(i-9*j);
 		}
 
 		for (j=0 ; j < (i-55); j++) {
@@ -168,11 +162,7 @@ static void gen_diag_nw()
 	for (i=0; i < 8; i++) {
 		diag_mask_nw[i] = EMPTY;
 		for (j=0; j < i+1; j++) {
-			diag_mask_nw[i] |= C64(1) << (i+7*j);
-			/*
-			int opp = i+7*j;
-			printf("square : %i - opposite :%i\n", i, opp);
-			*/
+			diag_mask_nw[i] |= SQ64(i+7*j);
 		}
 		for (j=0; j < i+1; j++) {
 			diag_mask_nw[i+7*j] = diag_mask_nw[i];
@@ -183,11 +173,7 @@ static void gen_diag_nw()
 	for (i=56; i < 64; i++) {
 		diag_mask_nw[i] = EMPTY;
 		for (j=0; j < 64-i; j++) {
-			diag_mask_nw[i] |= C64(1) << (i-7*j);
-			/*
-			int opp = i-7*j;
-			printf("square : %i - opposite :%i\n", i, opp);
-			*/
+			diag_mask_nw[i] |= SQ64(i-7*j);
 		}
 		for (j=0; j < 64-i; j++) {
 			diag_mask_nw[i-7*j] = diag_mask_nw[i];
@@ -204,9 +190,9 @@ static void gen_obstructed()
 	U64 fromSquare = C64(0), toSquare = C64(0), btwn = C64(0);
 	int sq1=0, sq2=0;
 	for (sq1=0; sq1 < TOTAL_SQUARES; sq1++) {
-		fromSquare = C64(1) << sq1;
+		fromSquare = SQ64(sq1);
 		for (sq2=0; sq2 < TOTAL_SQUARES; sq2++) {
-			toSquare = C64(1) << sq2;
+			toSquare = SQ64(sq2);
 			obstructed_mask[sq1][sq2] = EMPTY;
 			 // This mask include at least fromSquare or toSquare...
 			//  ( btwn including toSquare and excluding fromSquare )
@@ -232,6 +218,7 @@ static void gen_obstructed()
 
 void bitboard_init()
 {
+	/* Init bin2alg array */
 	int i=0, j=0, offset=0;
 	char letters[8] = {'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'};
 	for (i=1; i < 9; i++) {
@@ -281,16 +268,6 @@ U64 bitboard_algToBin(const char *alg)
 	return rank & file;
 }
 
-inline int bitboard_IPopCount(U64 x) {
-	int count = 0;
-	while (x) {
-		count++;
-		// x &= x - 1; // reset LS1B
-		x = RESET_LS1B(x);
-	}
-	return count;
-};
-
 void bitboard_display(U64 bb)
 {
 	int rankIndex = 7, 
@@ -331,43 +308,32 @@ void bitboard_display(U64 bb)
 
 U64 bitboard_getFile(U64 bb)
 {
-	assert(bb != EMPTY);
-	Square idx = bitboard_bitScanForward(bb);
-	return file_mask[idx];
+	return file_mask[bitboard_bitScanForward(bb)];
 }
 
 int bitboard_getFileIdx(U64 bb)
 {
-	Square sq = bitboard_bitScanForward(bb);
-	return file[sq];
+	return file[bitboard_bitScanForward(bb)];
 }
 
 U64 bitboard_getRank(U64 bb)
 {
-	assert(bb != EMPTY);
-	Square idx = bitboard_bitScanForward(bb);
-	return rank_mask[idx];
+	return rank_mask[bitboard_bitScanForward(bb)];
 }
 
 U64 bitboard_getDiagNE(U64 bb)
 {
-	assert(bb != EMPTY);
-	Square idx = bitboard_bitScanForward(bb);
-	return diag_mask_ne[idx];
+	return diag_mask_ne[bitboard_bitScanForward(bb)];
 }
 
 U64 bitboard_getDiagNW(U64 bb)
 {
-	assert(bb != EMPTY);
-	Square idx = bitboard_bitScanForward(bb);
-	return diag_mask_nw[idx];
+	return diag_mask_nw[bitboard_bitScanForward(bb)];
 }
 
 U64 bitboard_getObstructed(U64 from, U64 to)
 {
-	Square idxFrom = bitboard_bitScanForward(from);
-	Square idxTo   = bitboard_bitScanForward(to);
-	return obstructed_mask[idxFrom][idxTo];
+	return obstructed_mask[bitboard_bitScanForward(from)][bitboard_bitScanForward(to)];
 }
 
 
@@ -387,14 +353,13 @@ U64 bitboard_rankAttacks(U64 occupancy, U64 fromSquare)
 
 U64 bitboard_diagonalAttacks(U64 occupancy, U64 fromSquare)
 {
-	Square idx= bitboard_bitScanForward(fromSquare);
-	return Bmagic(idx, occupancy);
+	return Bmagic(bitboard_bitScanForward(fromSquare), occupancy);
 }
 
 U64 bitboard_xrayFileAttacks(U64 occupancy, U64 blockers, U64 fromSquare)
 {
 	U64 attacks = bitboard_fileAttacks(occupancy, fromSquare);
-	blockers &= attacks & 0x00FFFFFFFFFFFF00;
+	blockers &= attacks & C64(0x00FFFFFFFFFFFF00);
 	if (blockers == 0) {
 		return blockers;
 	}
@@ -404,7 +369,7 @@ U64 bitboard_xrayFileAttacks(U64 occupancy, U64 blockers, U64 fromSquare)
 U64 bitboard_xrayRankAttacks(U64 occupancy, U64 blockers, U64 fromSquare)
 {
 	U64 attacks = bitboard_rankAttacks(occupancy, fromSquare);
-	blockers &= attacks & 0x7E7E7E7E7E7E7E7E;
+	blockers &= attacks & C64(0x7E7E7E7E7E7E7E7E);
 	if (blockers == 0) {
 		return blockers;
 	}
@@ -414,7 +379,7 @@ U64 bitboard_xrayRankAttacks(U64 occupancy, U64 blockers, U64 fromSquare)
 U64 bitboard_xrayDiagonalAttacks(U64 occupancy, U64 blockers, U64 fromSquare)
 {
 	U64 attacks = bitboard_diagonalAttacks(occupancy, fromSquare);
-	blockers &= attacks & 0x007E7E7E7E7E7E00;
+	blockers &= attacks & C64(0x007E7E7E7E7E7E00);
 	if (blockers == 0) {
 		return blockers;
 	}
