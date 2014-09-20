@@ -450,7 +450,6 @@ void position_init()
 	pos.in_check = 0;
 	pos.checkmated = 0;
 
-	pos.last_double = EMPTY;
 	pos.enpassant = NONE_SQUARE;
 	pos.castling_rights = 0;
 	pos.side = WHITE; // White To Move
@@ -529,6 +528,7 @@ int position_fromFen(const char *fen)
 	int length = strlen(fen);
 	int i = 0, part = 0, rankIndex = 7, fileIndex = 0, squareIndex = 0;
 	U64 enPassantTarget = EMPTY;
+	U64 last_double = EMPTY;
 
 	for (i=0; i < length; i++) {
 
@@ -597,12 +597,12 @@ int position_fromFen(const char *fen)
 				}
 				enPassantTarget = bitboard_algToBin(&(fen[i]));
 				if (enPassantTarget & RANK6) {
-					pos.last_double = bitboard_soutOne(enPassantTarget);
+					last_double = bitboard_soutOne(enPassantTarget);
 				}
 				if (enPassantTarget & RANK3) {
-					pos.last_double = bitboard_nortOne(enPassantTarget);
+					last_double = bitboard_nortOne(enPassantTarget);
 				}
-				if (pos.last_double) {
+				if (last_double) {
 					pos.enpassant = bitboard_bitScanForward(enPassantTarget);
 					pos.hash ^= zobrist.ep[pos.enpassant];
 				}
@@ -622,8 +622,6 @@ void position_makeMove(Move *move)
 	Piece pieceFrom = NONE_PIECE;
 	int i = 0;
 
-	pos.last_double = EMPTY;
-	
 	move->castling_rights = pos.castling_rights;
 
 	// move->prevHash = pos.hash;
@@ -711,7 +709,7 @@ void position_makeMove(Move *move)
 		}
 	}
 	else if (move->type == PAWN_DOUBLE) {
-		pos.last_double = bb_to;
+
 		if ((bitboard_westOne(bb_to) | bitboard_eastOne(bb_to)) & pos.bb_pieces[P + (1 ^ pos.side)]) {
 			// Activate new enPassant
 			pos.enpassant = (move->from + move->to) / 2;
@@ -797,9 +795,6 @@ void position_undoMove(Move *move)
 				POS_MOVE_PIECE(r, d8, a8);
 				break;
 		}
-	}
-	else if (move->type == PAWN_DOUBLE) {
-		pos.last_double = EMPTY;
 	}
 
 	pos.hash ^= zobrist.castling[pos.castling_rights];

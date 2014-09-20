@@ -38,7 +38,6 @@ typedef struct {
 	U64 bb_empty ;
 	U64 attacks_from[64];
 	U64 attacks_to[64];
-	// Move movelist[256];
 	int movelistcount;
 
 	U64 pinned; // Pinned squares
@@ -47,9 +46,7 @@ typedef struct {
 	int in_check;
 	int checkmated;
 
-	U64 last_double;
 	int enpassant;
-	
 
 	short castling_rights;
 
