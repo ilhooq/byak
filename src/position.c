@@ -74,10 +74,11 @@ static void INLINE position_refresh()
 
 	pos.kingAttacks = EMPTY;
 	pos.knightsAttacks = EMPTY;
-	pos.nortHpawnAttacks = EMPTY;
-	pos.southpawnAttacks = EMPTY;
 	pos.queenBishopsAttacks = EMPTY;
 	pos.queenRooksAttacks = EMPTY;
+
+	pos.pawnAttacks[WHITE] = EMPTY;
+	pos.pawnAttacks[BLACK] = EMPTY;
 
 	pos.pinned = EMPTY;
 	pos.in_check = 0;
@@ -116,14 +117,12 @@ static U64 position_attacksTo(Square sq) {
 	U64 bb_sq = SQ64(sq);
 	U64 attackers = EMPTY;
 
-	if (pos.nortHpawnAttacks & bb_sq) {
-		attackers |= bitboard_soWeOne(bb_sq) & pos.bb_pieces[P];
-		attackers |= bitboard_soEaOne(bb_sq) & pos.bb_pieces[P];
+	if (pos.pawnAttacks[WHITE] & bb_sq) {
+		attackers |= ((bitboard_soWeOne(bb_sq) | bitboard_soEaOne(bb_sq)) & pos.bb_pieces[P]);
 	}
 
-	if (pos.southpawnAttacks & bb_sq) {
-		attackers |= bitboard_noWeOne(bb_sq) & pos.bb_pieces[p];
-		attackers |= bitboard_noEaOne(bb_sq) & pos.bb_pieces[p];
+	if (pos.pawnAttacks[BLACK] & bb_sq) {
+		attackers |= ((bitboard_noWeOne(bb_sq) | bitboard_noEaOne(bb_sq)) & pos.bb_pieces[p]);
 	}
 
 	if (pos.knightsAttacks & bb_sq) {
@@ -181,13 +180,7 @@ static int squareAttacked(Square sq)
 {
 	U64 bb_sq = SQ64(sq);
 
-	if (pos.side == BLACK && (pos.nortHpawnAttacks & bb_sq)) {
-		return 1;
-	}
-
-	if (pos.side == WHITE && pos.southpawnAttacks & bb_sq) {
-		return 1;
-	}
+	if (pos.pawnAttacks[OTHER_SIDE] & bb_sq) return 1;
 
 	if (pos.knightsAttacks & bb_sq) {
 		if (bitboard_getKnightMoves(bb_sq) & pos.bb_pieces[N + OTHER_SIDE]) return 1;
@@ -210,15 +203,7 @@ static int squareAttacked(Square sq)
 
 int position_inCheck()
 {
-	// Is a White pawn attack black king ? 
-	if (pos.nortHpawnAttacks & pos.bb_pieces[k]) {
-		return 1;
-	}
-
-	// Is a black pawn attack white king ? 
-	if (pos.southpawnAttacks & pos.bb_pieces[K]) {
-		return 1;
-	}
+	if (pos.pawnAttacks[OTHER_SIDE] & OUR_KING) return 1;
 
 	if (bitboard_getKnightMoves(OUR_KING) & pos.bb_pieces[N + OTHER_SIDE]) return 1;
 
@@ -331,7 +316,7 @@ void static INLINE genPinned()
    For this function, perfs are better without static and 
    INLINE declaration probably because of linker optimizations.
 */
-void genPiecesAttacks()
+void genAttacks()
 {
 	U64 non_pawns = pos.bb_occupied & ~pos.bb_pieces[P] & ~pos.bb_pieces[p];
 	U64 from_square = EMPTY;
@@ -357,28 +342,10 @@ void genPiecesAttacks()
 
 		non_pawns = RESET_LS1B(non_pawns);
 	}
-}
 
-static void genPawnsAttacks()
-{
-	/* produce pawn attacks. */
-	U64 left_attack = EMPTY;
-	U64 right_attack = EMPTY;
-	
-	int side = 0;
-	for (side=0; side < 2; side++) {
-		if (side == WHITE) {
-			left_attack  = bitboard_noWeOne(pos.bb_pieces[P]);
-			right_attack = bitboard_noEaOne(pos.bb_pieces[P]);
-			pos.nortHpawnAttacks = (left_attack | right_attack);
-		}
-		else {
-			left_attack  = bitboard_soWeOne(pos.bb_pieces[p]);
-			right_attack = bitboard_soEaOne(pos.bb_pieces[p]);
-			pos.southpawnAttacks = (left_attack | right_attack);
-		}
-	}
-
+	/* Generate pawn attacks */
+	pos.pawnAttacks[WHITE] = (bitboard_noWeOne(pos.bb_pieces[P]) | bitboard_noEaOne(pos.bb_pieces[P]));
+	pos.pawnAttacks[BLACK] = (bitboard_soWeOne(pos.bb_pieces[p]) | bitboard_soEaOne(pos.bb_pieces[p]));
 }
 
 static void genCheckEvasions(Move *movelist)
@@ -921,8 +888,7 @@ int position_generateMoves(Move *movelist)
 	movelistcount = 0;
 
 	genPinned();
-	genPiecesAttacks();
-	genPawnsAttacks();
+	genAttacks();
 
 	/* Are we in check?! */
 	if (position_inCheck()) {

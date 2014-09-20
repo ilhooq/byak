@@ -42,12 +42,12 @@ typedef struct {
 	U64 pinned; // Pinned squares
 	U64 pinner[64];
 
-	U64 nortHpawnAttacks;
-	U64 southpawnAttacks;
 	U64 kingAttacks;
 	U64 knightsAttacks;
 	U64 queenRooksAttacks;
 	U64 queenBishopsAttacks;
+
+	U64 pawnAttacks[2];
 
 	int in_check;
 	int checkmated;
