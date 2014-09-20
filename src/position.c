@@ -52,15 +52,15 @@
 #define OUR_PIECES pos.bb_side[OUR_SIDE]
 #define OTHER_PIECES pos.bb_side[OTHER_SIDE]
 
-#define W_ROCK_ATTACKED_KS ((position_attacksTo(g1) | position_attacksTo(f1)) & OTHER_PIECES)
+#define W_ROCK_ATTACKED_KS (squareAttacked(g1) | squareAttacked(f1))
 /* If b1 is attacked, it's not a problem to make the Queen side rock */
-#define W_ROCK_ATTACKED_QS ((position_attacksTo(c1) | position_attacksTo(d1)) & OTHER_PIECES)
+#define W_ROCK_ATTACKED_QS (squareAttacked(c1) | squareAttacked(d1))
 #define W_ROCK_OCCUPIED_KS ((SQ64(g1) | SQ64(f1)) & pos.bb_occupied)
 #define W_ROCK_OCCUPIED_QS ((SQ64(b1) | SQ64(c1) | SQ64(d1)) & pos.bb_occupied)
 
-#define B_ROCK_ATTACKED_KS ((position_attacksTo(g8) | position_attacksTo(f8)) & OTHER_PIECES)
+#define B_ROCK_ATTACKED_KS (squareAttacked(g8) | squareAttacked(f8))
 /* If b8 is attacked, it's not a problem to make the Queen side rock */
-#define B_ROCK_ATTACKED_QS ((position_attacksTo(c8) | position_attacksTo(d8)) & OTHER_PIECES)
+#define B_ROCK_ATTACKED_QS (squareAttacked(c8) | squareAttacked(d8))
 #define B_ROCK_OCCUPIED_KS ((SQ64(g8) | SQ64(f8)) & pos.bb_occupied)
 #define B_ROCK_OCCUPIED_QS ((SQ64(b8) | SQ64(c8) | SQ64(d8)) & pos.bb_occupied)
 
@@ -177,6 +177,62 @@ static U64 position_attacksFrom(Square sq)
 	return attacks;
 }
 
+static int squareAttacked(Square sq)
+{
+	U64 bb_sq = SQ64(sq);
+
+	if (pos.side == BLACK && (pos.nortHpawnAttacks & bb_sq)) {
+		return 1;
+	}
+
+	if (pos.side == WHITE && pos.southpawnAttacks & bb_sq) {
+		return 1;
+	}
+
+	if (pos.knightsAttacks & bb_sq) {
+		if (bitboard_getKnightMoves(bb_sq) & pos.bb_pieces[N + OTHER_SIDE]) return 1;
+	}
+
+	if (pos.kingAttacks & bb_sq) {
+		if (bitboard_getKingMoves(bb_sq) & pos.bb_pieces[K + OTHER_SIDE]) return 1;
+	}
+
+	if (pos.queenRooksAttacks & bb_sq) {
+		if (Rmagic(sq, pos.bb_occupied) & OTHER_QUEEN_ROOKS) return 1;
+	}
+
+	if (pos.queenBishopsAttacks & bb_sq) {
+		if (Bmagic(sq, pos.bb_occupied) & OTHER_QUEEN_BISHOPS) return 1;
+	}
+
+	return 0;
+}
+
+int position_inCheck()
+{
+	// Is a White pawn attack black king ? 
+	if (pos.nortHpawnAttacks & pos.bb_pieces[k]) {
+		return 1;
+	}
+
+	// Is a black pawn attack white king ? 
+	if (pos.southpawnAttacks & pos.bb_pieces[K]) {
+		return 1;
+	}
+
+	if (bitboard_getKnightMoves(OUR_KING) & pos.bb_pieces[N + OTHER_SIDE]) return 1;
+
+	if (pos.queenRooksAttacks & OUR_KING) {
+		if (Rmagic(bitboard_bitScanForward(OUR_KING), pos.bb_occupied) & OTHER_QUEEN_ROOKS) return 1;
+	}
+
+	if (pos.queenBishopsAttacks & OUR_KING) {
+		if (Bmagic(bitboard_bitScanForward(OUR_KING), pos.bb_occupied) & OTHER_QUEEN_BISHOPS) return 1;
+	}
+
+	return 0;
+}
+
 
 static int canTakeEp(U64 from, U64 to)
 {
@@ -202,12 +258,13 @@ static int INLINE canMove(U64 from_square, U64 to_square)
 		return 0;
 	}
 
-	/* Need to make sure that king doesn't move into check */
-	if ((from_square & OUR_KING) && (position_attacksTo(bitboard_bitScanForward(to_square)) & OTHER_PIECES)) {
+	/* Make sure that king doesn't move into check */
+	if ((from_square & OUR_KING) && squareAttacked(bitboard_bitScanForward(to_square))) {
 		return 0;
 	}
 
 	if (from_square & OUR_KING) {
+		// Utiliser Rmagic Bmagic ici
 		U64 occupancy = pos.bb_occupied ^ OUR_KING;
 		if (bitboard_rankAttacks(occupancy, to_square) & OTHER_QUEEN_ROOKS) return 0;
 		if (bitboard_fileAttacks(occupancy, to_square) & OTHER_QUEEN_ROOKS) return 0;
@@ -868,7 +925,7 @@ int position_generateMoves(Move *movelist)
 	genPawnsAttacks();
 
 	/* Are we in check?! */
-	if (position_attacksTo(bitboard_bitScanForward(OUR_KING)) & OTHER_PIECES) {
+	if (position_inCheck()) {
 		/* we are in check, find check evasions to get out */
 		pos.in_check = 1;
 		genCheckEvasions(movelist);

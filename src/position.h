@@ -36,8 +36,7 @@ typedef struct {
 	U64 bb_side[2]; // Side occupancy
 	U64 bb_occupied;
 	U64 bb_empty ;
-	// U64 attacks_from[64];
-	// U64 attacks_to[64];
+
 	int movelistcount;
 
 	U64 pinned; // Pinned squares
@@ -103,5 +102,6 @@ void position_makeMove(Move *move);
  */
 void position_undoMove(Move *move);
 
+int position_inCheck();
 
 #endif
