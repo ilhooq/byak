@@ -887,21 +887,21 @@ int position_generateMoves(Move *movelist)
 
 	if (pos.side == WHITE && (pos.castling_rights & (W_CASTLE_K|W_CASTLE_Q))) {
 
-		if ((pos.castling_rights & W_CASTLE_K) && pos.bb_pieces[R] & SQ64(h1) && !W_ROCK_ATTACKED_KS && !W_ROCK_OCCUPIED_KS) {
+		if ((pos.castling_rights & W_CASTLE_K) && !W_ROCK_ATTACKED_KS && !W_ROCK_OCCUPIED_KS) {
 			listAdd(movelist, OUR_KING, SQ64(g1), CASTLE,0,0,0);
 		}
 
-		if ((pos.castling_rights & W_CASTLE_Q) && pos.bb_pieces[R] & SQ64(a1) && !W_ROCK_ATTACKED_QS && !W_ROCK_OCCUPIED_QS) {
+		if ((pos.castling_rights & W_CASTLE_Q) && !W_ROCK_ATTACKED_QS && !W_ROCK_OCCUPIED_QS) {
 			listAdd(movelist, OUR_KING, SQ64(c1), CASTLE,0,0,0);
 		}
 	}
 	else if (pos.side == BLACK && (pos.castling_rights & (B_CASTLE_K|B_CASTLE_Q))) {
 
-		if ((pos.castling_rights & B_CASTLE_K) && pos.bb_pieces[r] & SQ64(h8) && !B_ROCK_ATTACKED_KS && !B_ROCK_OCCUPIED_KS) {
+		if ((pos.castling_rights & B_CASTLE_K) && !B_ROCK_ATTACKED_KS && !B_ROCK_OCCUPIED_KS) {
 			listAdd(movelist, OUR_KING, SQ64(g8), CASTLE,0,0,0);
 		}
 
-		if ((pos.castling_rights & B_CASTLE_Q) && pos.bb_pieces[r] & SQ64(a8) && !B_ROCK_ATTACKED_QS && !B_ROCK_OCCUPIED_QS) {
+		if ((pos.castling_rights & B_CASTLE_Q) && !B_ROCK_ATTACKED_QS && !B_ROCK_OCCUPIED_QS) {
 			listAdd(movelist, OUR_KING, SQ64(c8), CASTLE,0,0,0);
 		}
 	}
