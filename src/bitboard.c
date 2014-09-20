@@ -23,30 +23,30 @@
 #include "magicmoves.h"
 
 /** Algebric notation for each square */
-char bin2alg[64][3];
+static char bin2alg[64][3];
 
 /** Knight moves mask for each square */
-U64 knight_moves[64];
+static U64 knight_moves[64];
 
 /** King moves mask for each square */
-U64 king_moves[64];
+static U64 king_moves[64];
 
-int file[64];
-int rank[64];
+static int file[64];
+static int rank[64];
 
 /** Rank mask for each square */
-U64 rank_mask[64];
+static U64 rank_mask[64];
 
 /** File mask for each square */
-U64 file_mask[64];
+static U64 file_mask[64];
 
 /** NorthEast Diag mask for each square */
-U64 diag_mask_ne[64];
+static U64 diag_mask_ne[64];
 
 /** NorthWest Diag mask for each square */
-U64 diag_mask_nw[64];
+static U64 diag_mask_nw[64];
 
-U64 obstructed_mask[64][64];
+static U64 obstructed_mask[64][64];
 
 /** Init king_moves */
 static void gen_king_moves()
@@ -303,7 +303,15 @@ void bitboard_display(U64 bb)
 	printf("      a   b   c   d   e   f   g   h\n");
 }
 
+U64 bitboard_getKingMoves(U64 bb)
+{
+	return king_moves[bitboard_bitScanForward(bb)];
+}
 
+U64 bitboard_getKnightMoves(U64 bb)
+{
+	return knight_moves[bitboard_bitScanForward(bb)];
+}
 
 
 U64 bitboard_getFile(U64 bb)

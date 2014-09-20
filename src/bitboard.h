@@ -119,34 +119,8 @@ typedef enum enumSquare {
 	NONE_SQUARE, /* 64 */
 } Square;
 
-/** Algebric notation for each square */
-extern char bin2alg[64][3];
 
-/** Knight moves mask for each square */
-extern U64 knight_moves[64];
-
-/** King moves mask for each square */
-extern U64 king_moves[64];
-
-extern int file[64];
-extern int rank[64];
-
-/** Rank mask for each square */
-extern U64 rank_mask[64];
-
-/** File mask for each square */
-extern U64 file_mask[64];
-
-/** NorthEast Diag mask for each square */
-extern U64 diag_mask_ne[64];
-
-/** NorthWest Diag mask for each square */
-extern U64 diag_mask_nw[64];
-
-extern U64 obstructed_mask[64][64];
-
-
-static int INLINE bitboard_IPopCount(U64 x) {
+static INLINE int bitboard_IPopCount(U64 x) {
 	int count = 0;
 	while (x) {
 		count++;
@@ -155,12 +129,6 @@ static int INLINE bitboard_IPopCount(U64 x) {
 	}
 	return count;
 }
-
-void bitboard_init();
-
-char* bitboard_binToAlg(U64 bb);
-
-U64 bitboard_algToBin(const char *alg);
 
 #if !(defined __LP64__ || defined __LLP64__) || defined _WIN32 && !defined _WIN64
 /* This code works for 32 bits or 64 bits procesors*/
@@ -212,6 +180,12 @@ int static INLINE bitboard_bitScanReverse(U64 bb)
 
 #endif
 
+void bitboard_init();
+
+char* bitboard_binToAlg(U64 bb);
+
+U64 bitboard_algToBin(const char *alg);
+
 /**
  * bitboard_display
  * Display a bitboard in a 8x8 board 
@@ -220,19 +194,11 @@ int static INLINE bitboard_bitScanReverse(U64 bb)
  */
 void bitboard_display(U64 bb);
 
-U64 static INLINE bitboard_getKingMoves(U64 bb)
-{
-	assert(bb != EMPTY);
-	Square idx = bitboard_bitScanForward(bb);
-	return king_moves[idx];
-}
 
-U64 static INLINE bitboard_getKnightMoves(U64 bb)
-{
-	assert(bb != EMPTY);
-	Square idx = bitboard_bitScanForward(bb);
-	return knight_moves[idx];
-}
+
+U64 bitboard_getKingMoves(U64 bb);
+
+U64 bitboard_getKnightMoves(U64 bb);
 
 U64 bitboard_getFile(U64 bb);
 
