@@ -33,11 +33,6 @@
 
 #define POS_MOVE_PIECE(piece, sq_from, sq_to) POS_DEL_PIECE(piece, sq_from); POS_ADD_PIECE(piece, sq_to);
 
-#define POS_ADD_ATTACK(from_square, to_square) \
-	pos.attacks_from[bitboard_bitScanForward(from_square)] |= to_square; \
-	pos.attacks_to[bitboard_bitScanForward(to_square)] |= from_square;
-
-
 #define OUR_SIDE pos.side
 #define OTHER_SIDE (1 ^ pos.side)
 
@@ -57,16 +52,15 @@
 #define OUR_PIECES pos.bb_side[OUR_SIDE]
 #define OTHER_PIECES pos.bb_side[OTHER_SIDE]
 
-#define W_ROCK_ATTACKED_KS ((pos.attacks_to[g1] | pos.attacks_to[f1]) & OTHER_PIECES)
+#define W_ROCK_ATTACKED_KS ((position_attacksTo(g1) | position_attacksTo(f1)) & OTHER_PIECES)
 /* If b1 is attacked, it's not a problem to make the Queen side rock */
-#define W_ROCK_ATTACKED_QS ((pos.attacks_to[c1] | pos.attacks_to[d1]) & OTHER_PIECES)
-
+#define W_ROCK_ATTACKED_QS ((position_attacksTo(c1) | position_attacksTo(d1)) & OTHER_PIECES)
 #define W_ROCK_OCCUPIED_KS ((SQ64(g1) | SQ64(f1)) & pos.bb_occupied)
 #define W_ROCK_OCCUPIED_QS ((SQ64(b1) | SQ64(c1) | SQ64(d1)) & pos.bb_occupied)
 
-#define B_ROCK_ATTACKED_KS ((pos.attacks_to[g8] | pos.attacks_to[f8]) & OTHER_PIECES)
+#define B_ROCK_ATTACKED_KS ((position_attacksTo(g8) | position_attacksTo(f8)) & OTHER_PIECES)
 /* If b8 is attacked, it's not a problem to make the Queen side rock */
-#define B_ROCK_ATTACKED_QS ((pos.attacks_to[c8] | pos.attacks_to[d8]) & OTHER_PIECES)
+#define B_ROCK_ATTACKED_QS ((position_attacksTo(c8) | position_attacksTo(d8)) & OTHER_PIECES)
 #define B_ROCK_OCCUPIED_KS ((SQ64(g8) | SQ64(f8)) & pos.bb_occupied)
 #define B_ROCK_OCCUPIED_QS ((SQ64(b8) | SQ64(c8) | SQ64(d8)) & pos.bb_occupied)
 
@@ -76,9 +70,14 @@ static int movelistcount;
 
 static void INLINE position_refresh()
 {
-	memset(pos.attacks_from, 0, sizeof(pos.attacks_from));
-	memset(pos.attacks_to, 0, sizeof(pos.attacks_to));
 	memset(pos.pinner, 0, sizeof(pos.pinner));
+
+	pos.kingAttacks = EMPTY;
+	pos.knightsAttacks = EMPTY;
+	pos.nortHpawnAttacks = EMPTY;
+	pos.southpawnAttacks = EMPTY;
+	pos.queenBishopsAttacks = EMPTY;
+	pos.queenRooksAttacks = EMPTY;
 
 	pos.pinned = EMPTY;
 	pos.in_check = 0;
@@ -112,6 +111,73 @@ TypeMove type, char capture, Piece promoted_piece, Piece captured_piece)
 	movelistcount++;
 }
 
+
+static U64 position_attacksTo(Square sq) {
+	U64 bb_sq = SQ64(sq);
+	U64 attackers = EMPTY;
+
+	if (pos.nortHpawnAttacks & bb_sq) {
+		attackers |= bitboard_soWeOne(bb_sq) & pos.bb_pieces[P];
+		attackers |= bitboard_soEaOne(bb_sq) & pos.bb_pieces[P];
+	}
+
+	if (pos.southpawnAttacks & bb_sq) {
+		attackers |= bitboard_noWeOne(bb_sq) & pos.bb_pieces[p];
+		attackers |= bitboard_noEaOne(bb_sq) & pos.bb_pieces[p];
+	}
+
+	if (pos.knightsAttacks & bb_sq) {
+		attackers |= bitboard_getKnightMoves(bb_sq) & (pos.bb_pieces[N] | pos.bb_pieces[n]);
+	}
+
+	if (pos.kingAttacks & bb_sq) {
+		attackers |= bitboard_getKingMoves(bb_sq) & (pos.bb_pieces[K] | pos.bb_pieces[k]);
+	}
+
+	if (pos.queenRooksAttacks & bb_sq) {
+		attackers |= Rmagic(sq, pos.bb_occupied) & QUEEN_ROOKS;
+	}
+
+	if (pos.queenBishopsAttacks & bb_sq) {
+		attackers |= Bmagic(sq, pos.bb_occupied) & QUEEN_BISHOPS;
+	}
+
+	return attackers;
+}
+
+static U64 position_attacksFrom(Square sq)
+{
+	U64 bb_sq = SQ64(sq);
+	U64 attacks = EMPTY;
+
+	if (bb_sq & pos.bb_pieces[P]) {
+		return (bitboard_noWeOne(bb_sq) | bitboard_noEaOne(bb_sq));
+	}
+
+	if (bb_sq & pos.bb_pieces[p]) {
+		return (bitboard_soWeOne(bb_sq) | bitboard_soEaOne(bb_sq));
+	}
+
+	if (bb_sq & (pos.bb_pieces[K] | pos.bb_pieces[k])) {
+		return bitboard_getKingMoves(bb_sq);
+	}
+
+	if (bb_sq & (pos.bb_pieces[N] | pos.bb_pieces[n])) {
+		return bitboard_getKnightMoves(bb_sq);
+	}
+
+	if (bb_sq & QUEEN_ROOKS) {
+		attacks |= Rmagic(sq, pos.bb_occupied);
+	}
+
+	if (bb_sq & QUEEN_BISHOPS) {
+		attacks |= Bmagic(sq, pos.bb_occupied);
+	}
+
+	return attacks;
+}
+
+
 static int canTakeEp(U64 from, U64 to)
 {
 	U64 rank45 = (pos.side == WHITE) ? RANK5 : RANK4;
@@ -137,7 +203,7 @@ static int INLINE canMove(U64 from_square, U64 to_square)
 	}
 
 	/* Need to make sure that king doesn't move into check */
-	if ((from_square & OUR_KING) && (pos.attacks_to[bitboard_bitScanForward(to_square)] & OTHER_PIECES)) {
+	if ((from_square & OUR_KING) && (position_attacksTo(bitboard_bitScanForward(to_square)) & OTHER_PIECES)) {
 		return 0;
 	}
 
@@ -212,30 +278,24 @@ void genPiecesAttacks()
 {
 	U64 non_pawns = pos.bb_occupied & ~pos.bb_pieces[P] & ~pos.bb_pieces[p];
 	U64 from_square = EMPTY;
-	U64 moves = EMPTY;
 
 	while (non_pawns) {
 		from_square = LS1B(non_pawns);
 
 		if (from_square & KINGS) {
-			moves |= bitboard_getKingMoves(from_square & KINGS);
+			pos.kingAttacks |= bitboard_getKingMoves(from_square & KINGS);
 		}
 
 		if (from_square & KNIGHTS) {
-			moves |= bitboard_getKnightMoves(from_square & KNIGHTS);
+			pos.knightsAttacks |= bitboard_getKnightMoves(from_square & KNIGHTS);
 		}
 
 		if (from_square & QUEEN_ROOKS) {
-			moves |= Rmagic(bitboard_bitScanForward(from_square & QUEEN_ROOKS), pos.bb_occupied);
+			pos.queenRooksAttacks |= Rmagic(bitboard_bitScanForward(from_square & QUEEN_ROOKS), pos.bb_occupied);
 		}
 
 		if (from_square & QUEEN_BISHOPS) {
-			moves |= Bmagic(bitboard_bitScanForward(from_square & QUEEN_BISHOPS), pos.bb_occupied);
-		}
-
-		while (moves) {
-			POS_ADD_ATTACK(from_square, LS1B(moves));
-			moves = RESET_LS1B(moves);
+			pos.queenBishopsAttacks |= Bmagic(bitboard_bitScanForward(from_square & QUEEN_BISHOPS), pos.bb_occupied);
 		}
 
 		non_pawns = RESET_LS1B(non_pawns);
@@ -245,8 +305,6 @@ void genPiecesAttacks()
 static void genPawnsAttacks()
 {
 	/* produce pawn attacks. */
-	U64 from_square = EMPTY;
-	U64 to_square = EMPTY;
 	U64 left_attack = EMPTY;
 	U64 right_attack = EMPTY;
 	
@@ -255,26 +313,15 @@ static void genPawnsAttacks()
 		if (side == WHITE) {
 			left_attack  = bitboard_noWeOne(pos.bb_pieces[P]);
 			right_attack = bitboard_noEaOne(pos.bb_pieces[P]);
+			pos.nortHpawnAttacks = (left_attack | right_attack);
 		}
 		else {
 			left_attack  = bitboard_soWeOne(pos.bb_pieces[p]);
 			right_attack = bitboard_soEaOne(pos.bb_pieces[p]);
-		}
-
-		while (left_attack) {
-			to_square = LS1B(left_attack);
-			from_square = (side == WHITE) ? to_square >> 7 : to_square << 9;
-			POS_ADD_ATTACK(from_square, to_square);
-			left_attack = RESET_LS1B(left_attack);
-		}
-
-		while (right_attack) {
-			to_square = LS1B(right_attack);
-			from_square = (side == WHITE) ? to_square >> 9 : to_square << 7;
-			POS_ADD_ATTACK(from_square, to_square);
-			right_attack = RESET_LS1B(right_attack);
+			pos.southpawnAttacks = (left_attack | right_attack);
 		}
 	}
+
 }
 
 static void genCheckEvasions(Move *movelist)
@@ -285,7 +332,7 @@ static void genCheckEvasions(Move *movelist)
 	int from = 0, to = 0;
 	int king_sq = bitboard_bitScanForward(OUR_KING);
 
-	U64 king_attackers = pos.attacks_to[king_sq] & OTHER_PIECES;
+	U64 king_attackers = position_attacksTo(king_sq) & OTHER_PIECES;
 
 	U64 bb_enpassant = (pos.enpassant != NONE_SQUARE) ? SQ64(pos.enpassant) : EMPTY;
 
@@ -302,7 +349,7 @@ static void genCheckEvasions(Move *movelist)
 		1. Try to capture the attacking piece
 		###########################################################
 		*/
-		U64 our_attacking_pieces = pos.attacks_to[bitboard_bitScanForward(king_attackers)] & OUR_PIECES;
+		U64 our_attacking_pieces = position_attacksTo(bitboard_bitScanForward(king_attackers)) & OUR_PIECES;
 
 		if (our_attacking_pieces & OUR_KING) {
 			// The king capture is processed in the Move out the way part
@@ -331,7 +378,7 @@ static void genCheckEvasions(Move *movelist)
 		while (our_attacking_pieces) {
 			bb_from = LS1B(our_attacking_pieces);
 			from = bitboard_bitScanForward(bb_from);
-			bb_to = pos.attacks_from[from] & king_attackers;
+			bb_to = position_attacksFrom(from) & king_attackers;
 
 			if ((bb_to & king_attackers) && canMove(bb_from, bb_to)) {
 				to = bitboard_bitScanForward(bb_to);
@@ -398,7 +445,7 @@ static void genCheckEvasions(Move *movelist)
 		while(obstructed) {
 			bb_to = LS1B(obstructed);
 			to = bitboard_bitScanForward(bb_to);
-			blockers = pos.attacks_to[to] & (OUR_PIECES & ~OUR_KING & ~OUR_PAWNS);
+			blockers = position_attacksTo(to) & (OUR_PIECES & ~OUR_KING & ~OUR_PAWNS);
 			while(blockers) {
 				bb_from = LS1B(blockers);
 				if (canMove(bb_from, bb_to)) {
@@ -420,7 +467,7 @@ static void genCheckEvasions(Move *movelist)
 	U64 kingMoves = bitboard_getKingMoves(OUR_KING) & (pos.bb_empty | OTHER_PIECES);
 
 	while(king_attackers) {
-		kingMoves &= ~pos.attacks_from[bitboard_bitScanForward(LS1B(king_attackers))];
+		kingMoves &= ~position_attacksFrom(bitboard_bitScanForward(LS1B(king_attackers)));
 		king_attackers = RESET_LS1B(king_attackers);
 	}
 	from = bitboard_bitScanForward(OUR_KING);
@@ -461,8 +508,8 @@ void position_init()
 	pos.castling_rights = 0;
 	pos.side = WHITE; // White To Move
 
-	memset(pos.attacks_from, 0, sizeof(pos.attacks_from));
-	memset(pos.attacks_to, 0, sizeof(pos.attacks_to));
+	// memset(pos.attacks_from, 0, sizeof(pos.attacks_from));
+	// memset(pos.attacks_to, 0, sizeof(pos.attacks_to));
 	memset(pos.pinner, 0, sizeof(pos.pinner));
 
 	pos.hash = EMPTY;
@@ -821,7 +868,7 @@ int position_generateMoves(Move *movelist)
 	genPawnsAttacks();
 
 	/* Are we in check?! */
-	if (pos.attacks_to[bitboard_bitScanForward(OUR_KING)] & OTHER_PIECES) {
+	if (position_attacksTo(bitboard_bitScanForward(OUR_KING)) & OTHER_PIECES) {
 		/* we are in check, find check evasions to get out */
 		pos.in_check = 1;
 		genCheckEvasions(movelist);
@@ -850,7 +897,7 @@ int position_generateMoves(Move *movelist)
 	while (pieces) {
 		bb_from = LS1B(pieces);
 		from = bitboard_bitScanForward(bb_from);
-		moves = pos.attacks_from[from] & (OTHER_PIECES | pos.bb_empty);
+		moves = position_attacksFrom(from) & (OTHER_PIECES | pos.bb_empty);
 		while (moves) {
 			bb_to = LS1B(moves);
 

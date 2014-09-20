@@ -36,12 +36,19 @@ typedef struct {
 	U64 bb_side[2]; // Side occupancy
 	U64 bb_occupied;
 	U64 bb_empty ;
-	U64 attacks_from[64];
-	U64 attacks_to[64];
+	// U64 attacks_from[64];
+	// U64 attacks_to[64];
 	int movelistcount;
 
 	U64 pinned; // Pinned squares
 	U64 pinner[64];
+
+	U64 nortHpawnAttacks;
+	U64 southpawnAttacks;
+	U64 kingAttacks;
+	U64 knightsAttacks;
+	U64 queenRooksAttacks;
+	U64 queenBishopsAttacks;
 
 	int in_check;
 	int checkmated;
