@@ -96,12 +96,12 @@ static void INLINE position_refresh()
 	pos.bb_empty = ~pos.bb_occupied;
 }
 
-static void listAdd( Move *movelist, U64 from_square, U64 to_square, 
+static void listAdd( Move *movelist, Square from_square, Square to_square, 
 TypeMove type, char capture, Piece promoted_piece, Piece captured_piece)
 {
 	Move * move = &movelist[movelistcount];
-	move->from = bitboard_bitScanForward(from_square);
-	move->to = bitboard_bitScanForward(to_square);
+	move->from = from_square;
+	move->to = to_square;
 	move->type = type;
 	move->capture = (capture)? capture : 0;
 	move->promoted_piece = (promoted_piece)? promoted_piece : NONE_PIECE;
@@ -171,7 +171,7 @@ static int INLINE canMove(U64 from_square, U64 to_square)
 	return 1;
 }
 
-static void addPromotionMoves( Move *movelist, U64 from_square, U64 to_square, int capture)
+static void addPromotionMoves( Move *movelist, Square from_square, Square to_square, int capture)
 {
 	Square queen  = Q + pos.side;
 	Square bishop = B + pos.side;
@@ -281,13 +281,13 @@ static void genCheckEvasions(Move *movelist)
 {
 	/* pos should only get called if we're in check */
 	assert(pos.in_check);
+	U64 bb_from = EMPTY, bb_to = EMPTY;
+	int from = 0, to = 0;
+	int king_sq = bitboard_bitScanForward(OUR_KING);
 
-	U64 king_attackers = pos.attacks_to[bitboard_bitScanForward(OUR_KING)] & OTHER_PIECES;
+	U64 king_attackers = pos.attacks_to[king_sq] & OTHER_PIECES;
 
-	U64 from_square = EMPTY;
-	U64 to_square = EMPTY;
-
-	U64 enpassant_mask = (pos.enpassant != NONE_SQUARE) ? SQ64(pos.enpassant) : EMPTY;
+	U64 bb_enpassant = (pos.enpassant != NONE_SQUARE) ? SQ64(pos.enpassant) : EMPTY;
 
 	// We can either
 	// 1. capture the attacking piece
@@ -310,35 +310,37 @@ static void genCheckEvasions(Move *movelist)
 		}
 
 		// Check for enpassant capture
-		if (enpassant_mask) {
+		if (bb_enpassant) {
 			// We know the king attacker is a pawn
 			if (bitboard_westOne(king_attackers) & OUR_PAWNS) {
-				from_square = bitboard_westOne(king_attackers) & OUR_PAWNS;
-				if (canMove(from_square, enpassant_mask)) {
-					listAdd(movelist, from_square, enpassant_mask, ENPASSANT,1,0,0);
-					our_attacking_pieces ^= from_square;
+				bb_from = bitboard_westOne(king_attackers) & OUR_PAWNS;
+				if (canMove(bb_from, bb_enpassant)) {
+					listAdd(movelist, bitboard_bitScanForward(bb_from), pos.enpassant, ENPASSANT,1,0,0);
+					our_attacking_pieces ^= bb_from;
 				}
 			}
 			if (bitboard_eastOne(king_attackers) & OUR_PAWNS) {
-				from_square = bitboard_eastOne(king_attackers) & OUR_PAWNS;
-				if (canMove(from_square, enpassant_mask)) {
-					listAdd(movelist, from_square, enpassant_mask, ENPASSANT,1,0,0);
-					our_attacking_pieces ^= from_square;
+				bb_from = bitboard_eastOne(king_attackers) & OUR_PAWNS;
+				if (canMove(bb_from, bb_enpassant)) {
+					listAdd(movelist, bitboard_bitScanForward(bb_from), pos.enpassant, ENPASSANT,1,0,0);
+					our_attacking_pieces ^= bb_from;
 				}
 			}
 		}
 
 		while (our_attacking_pieces) {
-			from_square = LS1B(our_attacking_pieces);
-			to_square = pos.attacks_from[bitboard_bitScanForward(from_square)] & king_attackers;
+			bb_from = LS1B(our_attacking_pieces);
+			from = bitboard_bitScanForward(bb_from);
+			bb_to = pos.attacks_from[from] & king_attackers;
 
-			if ((to_square & king_attackers) && canMove(from_square, to_square)) {
+			if ((bb_to & king_attackers) && canMove(bb_from, bb_to)) {
+				to = bitboard_bitScanForward(bb_to);
 				// Capture
-				if ((from_square & OUR_PAWNS) && (RANK18 & to_square)) {
+				if ((bb_from & OUR_PAWNS) && (RANK18 & bb_to)) {
 					// We have a capture and promotion
-					addPromotionMoves(movelist, from_square, to_square, 1);
+					addPromotionMoves(movelist, from, to, 1);
 				} else {
-					listAdd(movelist, from_square, to_square, NORMAL,1,0,0);
+					listAdd(movelist, from, to, NORMAL,1,0,0);
 				}
 			}
 
@@ -366,38 +368,42 @@ static void genCheckEvasions(Move *movelist)
 		obstructed = bitboard_getObstructed(king_attackers, OUR_KING);
 
 		while (singlePushs) {
-			to_square = LS1B(singlePushs);
-			if (to_square & obstructed) {
-				from_square = (pos.side == WHITE) ? to_square >> 8 : to_square << 8;
+			bb_to = LS1B(singlePushs);
+			if (bb_to & obstructed) {
+				bb_from = (pos.side == WHITE) ? bb_to >> 8 : bb_to << 8;
 
-				if (canMove(from_square, to_square)) {
-					if (to_square & RANK18)
-						addPromotionMoves(movelist, from_square, to_square, 0);
+				if (canMove(bb_from, bb_to)) {
+					from = bitboard_bitScanForward(bb_from);
+					to = bitboard_bitScanForward(bb_to);
+					if (bb_to & RANK18)
+						addPromotionMoves(movelist, from, to, 0);
 					else
-						listAdd(movelist, from_square, to_square, NORMAL,0,0,0);
+						listAdd(movelist, from, to, NORMAL,0,0,0);
 				}
 			}
 			singlePushs = RESET_LS1B(singlePushs);
 		}
 
 		while (doublePushs) {
-			to_square = LS1B(doublePushs);
-			if (to_square & obstructed) {
-				from_square = (pos.side == WHITE) ? to_square >> 16 : to_square << 16;
-				if (canMove(from_square, to_square)) {
-					listAdd(movelist, from_square, to_square, PAWN_DOUBLE,0,0,0);
+			bb_to = LS1B(doublePushs);
+			if (bb_to & obstructed) {
+				bb_from = (pos.side == WHITE) ? bb_to >> 16 : bb_to << 16;
+				if (canMove(bb_from, bb_to)) {
+					listAdd(movelist, bitboard_bitScanForward(bb_from), bitboard_bitScanForward(bb_to), PAWN_DOUBLE,0,0,0);
 				}
 			}
 			doublePushs = RESET_LS1B(doublePushs);
 		}
 
 		while(obstructed) {
-			to_square = LS1B(obstructed);
-			blockers = pos.attacks_to[bitboard_bitScanForward(to_square)] & (OUR_PIECES & ~OUR_KING & ~OUR_PAWNS);
+			bb_to = LS1B(obstructed);
+			to = bitboard_bitScanForward(bb_to);
+			blockers = pos.attacks_to[to] & (OUR_PIECES & ~OUR_KING & ~OUR_PAWNS);
 			while(blockers) {
-				from_square = LS1B(blockers);
-				if (canMove(from_square, to_square)) {
-					listAdd(movelist, from_square, to_square, NORMAL,0,0,0);
+				bb_from = LS1B(blockers);
+				if (canMove(bb_from, bb_to)) {
+					from = bitboard_bitScanForward(bb_from);
+					listAdd(movelist, from, to, NORMAL,0,0,0);
 				}
 				blockers = RESET_LS1B(blockers);
 			}
@@ -417,19 +423,20 @@ static void genCheckEvasions(Move *movelist)
 		kingMoves &= ~pos.attacks_from[bitboard_bitScanForward(LS1B(king_attackers))];
 		king_attackers = RESET_LS1B(king_attackers);
 	}
+	from = bitboard_bitScanForward(OUR_KING);
 
 	while(kingMoves) {
-		to_square = LS1B(kingMoves);
+		bb_to = LS1B(kingMoves);
 
 		// If the square is not attacked by enemy piece
-		if (canMove(OUR_KING, to_square)) {
-			if (to_square & OTHER_PIECES) {
+		if (canMove(OUR_KING, bb_to)) {
+			if (bb_to & OTHER_PIECES) {
 				// capture
-				listAdd(movelist, OUR_KING, to_square, NORMAL,1,0,0);
+				listAdd(movelist, from, bitboard_bitScanForward(bb_to), NORMAL,1,0,0);
 			}
 			else {
 				// empty square
-				listAdd(movelist, OUR_KING, to_square, NORMAL,0,0,0);
+				listAdd(movelist, from, bitboard_bitScanForward(bb_to), NORMAL,0,0,0);
 			}
 		}
 		kingMoves = RESET_LS1B(kingMoves);
@@ -832,45 +839,47 @@ int position_generateMoves(Move *movelist)
 	pieces...we just need to remove our own pieces from the attack.
 	*/
 
-	U64 from_square = EMPTY;
-	U64 to_square = EMPTY;
+	U64 bb_from = EMPTY;
+	U64 bb_to = EMPTY;
+	int from = 0;
 	U64 moves = EMPTY;
 	U64 pieces = OUR_PIECES;
 
-	U64 enpassant_mask = (pos.enpassant != NONE_SQUARE) ? SQ64(pos.enpassant) : EMPTY;
+	U64 bb_enpassant = (pos.enpassant != NONE_SQUARE) ? SQ64(pos.enpassant) : EMPTY;
 
 	while (pieces) {
-		from_square = LS1B(pieces);
-		moves = pos.attacks_from[bitboard_bitScanForward(from_square)] & (OTHER_PIECES | pos.bb_empty);
+		bb_from = LS1B(pieces);
+		from = bitboard_bitScanForward(bb_from);
+		moves = pos.attacks_from[from] & (OTHER_PIECES | pos.bb_empty);
 		while (moves) {
-			to_square = LS1B(moves);
+			bb_to = LS1B(moves);
 
-			if (!canMove(from_square, to_square)) {
+			if (!canMove(bb_from, bb_to)) {
 				moves = RESET_LS1B(moves);
 				continue;
 			}
 
 			/* En passant capture */
-			if (enpassant_mask && (to_square == enpassant_mask) && (from_square & OUR_PAWNS) && canTakeEp(from_square, enpassant_mask)) {
-				listAdd(movelist, from_square, to_square, ENPASSANT,1,0,0);
+			if (bb_enpassant && (bb_to == bb_enpassant) && (bb_from & OUR_PAWNS) && canTakeEp(bb_from, bb_enpassant)) {
+				listAdd(movelist, from, bitboard_bitScanForward(bb_to), ENPASSANT,1,0,0);
 			}
 
 			/* Normal capture */
-			else if (to_square & OTHER_PIECES) {
+			else if (bb_to & OTHER_PIECES) {
 
-				if ((from_square & OUR_PAWNS) && (RANK18 & to_square)) {
+				if ((bb_from & OUR_PAWNS) && (RANK18 & bb_to)) {
 					/* We have a capture and promotion */
-					addPromotionMoves(movelist, from_square, to_square, 1);
+					addPromotionMoves(movelist, from, bitboard_bitScanForward(bb_to), 1);
 				}
 
 				else {
-					listAdd(movelist, from_square, to_square, NORMAL,1,0,0);
+					listAdd(movelist, from, bitboard_bitScanForward(bb_to), NORMAL,1,0,0);
 				}
 			}
 
 			/* Empty square */
-			else if (from_square & ~OUR_PAWNS) {
-				listAdd(movelist, from_square, to_square, NORMAL,0,0,0);
+			else if (bb_from & ~OUR_PAWNS) {
+				listAdd(movelist, from, bitboard_bitScanForward(bb_to), NORMAL,0,0,0);
 			}
 
 			moves = RESET_LS1B(moves);
@@ -882,22 +891,24 @@ int position_generateMoves(Move *movelist)
 
 	if (pos.side == WHITE && (pos.castling_rights & (W_CASTLE_K|W_CASTLE_Q))) {
 
+		from = bitboard_bitScanForward(OUR_KING);
 		if ((pos.castling_rights & W_CASTLE_K) && !W_ROCK_ATTACKED_KS && !W_ROCK_OCCUPIED_KS) {
-			listAdd(movelist, OUR_KING, SQ64(g1), CASTLE,0,0,0);
+			listAdd(movelist, from, g1, CASTLE,0,0,0);
 		}
 
 		if ((pos.castling_rights & W_CASTLE_Q) && !W_ROCK_ATTACKED_QS && !W_ROCK_OCCUPIED_QS) {
-			listAdd(movelist, OUR_KING, SQ64(c1), CASTLE,0,0,0);
+			listAdd(movelist, from, c1, CASTLE,0,0,0);
 		}
 	}
 	else if (pos.side == BLACK && (pos.castling_rights & (B_CASTLE_K|B_CASTLE_Q))) {
 
+		from = bitboard_bitScanForward(OUR_KING);
 		if ((pos.castling_rights & B_CASTLE_K) && !B_ROCK_ATTACKED_KS && !B_ROCK_OCCUPIED_KS) {
-			listAdd(movelist, OUR_KING, SQ64(g8), CASTLE,0,0,0);
+			listAdd(movelist, from, g8, CASTLE,0,0,0);
 		}
 
 		if ((pos.castling_rights & B_CASTLE_Q) && !B_ROCK_ATTACKED_QS && !B_ROCK_OCCUPIED_QS) {
-			listAdd(movelist, OUR_KING, SQ64(c8), CASTLE,0,0,0);
+			listAdd(movelist, from, c8, CASTLE,0,0,0);
 		}
 	}
 
@@ -919,28 +930,28 @@ int position_generateMoves(Move *movelist)
 	}
 
 	while (singlePushs) {
-		to_square = LS1B(singlePushs);
-		from_square = (pos.side == WHITE) ? to_square >> 8 : to_square << 8;
+		bb_to = LS1B(singlePushs);
+		bb_from = (pos.side == WHITE) ? bb_to >> 8 : bb_to << 8;
 
-		if ((from_square & pos.pinned) && canMove(from_square, to_square)) {
-			pos.pinned ^= from_square;
+		if ((bb_from & pos.pinned) && canMove(bb_from, bb_to)) {
+			pos.pinned ^= bb_from;
 		}
 
-		if (from_square & ~pos.pinned) {
+		if (bb_from & ~pos.pinned) {
 			/* Check promotion */
-			if (to_square & RANK18)
-				addPromotionMoves(movelist, from_square, to_square, 0);
+			if (bb_to & RANK18)
+				addPromotionMoves(movelist, bitboard_bitScanForward(bb_from), bitboard_bitScanForward(bb_to), 0);
 			else
-				listAdd(movelist, from_square, to_square, NORMAL,0,0,0);
+				listAdd(movelist, bitboard_bitScanForward(bb_from), bitboard_bitScanForward(bb_to), NORMAL,0,0,0);
 		}
 		singlePushs = RESET_LS1B(singlePushs);
 	}
 
 	while (doublePushs) {
-		to_square = LS1B(doublePushs);
-		from_square = (pos.side == WHITE) ? to_square >> 16 : to_square << 16;
-		if (from_square & ~pos.pinned) {
-			listAdd(movelist, from_square, to_square, PAWN_DOUBLE,0,0,0);
+		bb_to = LS1B(doublePushs);
+		bb_from = (pos.side == WHITE) ? bb_to >> 16 : bb_to << 16;
+		if (bb_from & ~pos.pinned) {
+			listAdd(movelist, bitboard_bitScanForward(bb_from), bitboard_bitScanForward(bb_to), PAWN_DOUBLE,0,0,0);
 		}
 		doublePushs = RESET_LS1B(doublePushs);
 	}
