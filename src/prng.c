@@ -35,33 +35,34 @@ Following the feature list, as tested by Heinz.
 - Thread safe
 */
 
-#include "prng.h"
+#include "types.h"
+
 #define rot(x,k) (((x)<<(k))|((x)>>(64-(k))))
 
-static U64 a;
-static U64 b;
-static U64 c;
-static U64 d;
+static U64 _a;
+static U64 _b;
+static U64 _c;
+static U64 _d;
 
 /** 
  * Return 64 bit unsigned integer in between [0, 2^64 - 1]
  */
 U64 rand64()
 {
-	U64 e = a - rot(b, 7);
-	a = b ^ rot(c, 13);
-	b = c + rot(d, 37);
-	c = d + e;
-	d = e + a;
-	return d;
+	U64 e = _a - rot(_b, 7);
+	_a = _b ^ rot(_c, 13);
+	_b = _c + rot(_d, 37);
+	_c = _d + e;
+	_d = e + _a;
+	return _d;
 }
 
 
 void prng_init(int seed) 
 {
 	int i;
-	a = 0xf1ea5eed;
-	b = c = d = 0xd4e12c77;
+	_a = 0xf1ea5eed;
+	_b = _c = _d = 0xd4e12c77;
 
 	for (i = 0; i < seed; i++) { /* Scramble a few rounds */
 		rand64();

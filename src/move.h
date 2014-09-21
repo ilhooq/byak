@@ -20,11 +20,6 @@
 #define MOVE_H
 
 #include "bitboard.h"
-#include "pieces.h"
-
-typedef enum {
-	NORMAL, PAWN_DOUBLE, PROMOTION, ENPASSANT, CASTLE
-} TypeMove;
 
 #define MOVE_NULL              0 
 #define MOVE_NORMAL            0x1 

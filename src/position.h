@@ -24,7 +24,11 @@
 #define WHITE 0
 #define BLACK 1
 
-/* 16 possible states */
+/* 
+Castle rights
+16 possible states 
+
+*/
 #define W_CASTLE_K 0x1 /* 0001 : 1 */
 #define W_CASTLE_Q 0x2 /* 0010 : 2 */
 #define B_CASTLE_K 0x4 /* 0100 : 4 */
