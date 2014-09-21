@@ -311,47 +311,80 @@ void static INLINE genPinned()
 */
 void genAttacks()
 {
-	U64 non_pawns = pos.bb_occupied & ~pos.bb_pieces[P] & ~pos.bb_pieces[p];
-	U64 from_square = EMPTY;
+	U64 pieces = EMPTY;
 
-	while (non_pawns) {
-		from_square = LS1B(non_pawns);
+	/* Generate king attacks */
+	pos.kingAttacks[WHITE] = bitboard_getKingMoves(pos.bb_pieces[K]);
+	pos.kingAttacks[BLACK] = bitboard_getKingMoves(pos.bb_pieces[k]);
 
-		if (from_square & pos.bb_pieces[K]) {
-			pos.kingAttacks[WHITE] |= bitboard_getKingMoves(from_square);
+	/* Generate knight attacks */
+
+	if (pos.bb_pieces[N]) {
+		pieces = pos.bb_pieces[N];
+		do {
+			pos.knightsAttacks[WHITE] |= bitboard_getKnightMoves(LS1B(pieces));
 		}
-		if (from_square & pos.bb_pieces[k]) {
-			pos.kingAttacks[BLACK] |= bitboard_getKingMoves(from_square);
-		}
+		while ((pieces = RESET_LS1B(pieces)));
+	}
 
-		if (from_square & pos.bb_pieces[N]) {
-			pos.knightsAttacks[WHITE] |= bitboard_getKnightMoves(from_square);
+	if (pos.bb_pieces[n]) {
+		pieces = pos.bb_pieces[n];
+		do {
+			pos.knightsAttacks[BLACK] |= bitboard_getKnightMoves(LS1B(pieces));
 		}
+		while ((pieces = RESET_LS1B(pieces)));
+	}
 
-		if (from_square & pos.bb_pieces[n]) {
-			pos.knightsAttacks[BLACK] |= bitboard_getKnightMoves(from_square);
+	/* Generate queen attacks */
+
+	if (pos.bb_pieces[Q]) {
+		pos.queenRooksAttacks[WHITE] |= Rmagic(bitboard_bitScanForward(pos.bb_pieces[Q]), pos.bb_occupied);
+		pos.queenBishopsAttacks[WHITE] |= Bmagic(bitboard_bitScanForward(pos.bb_pieces[Q]), pos.bb_occupied);
+	}
+
+	if (pos.bb_pieces[q]) {
+		pos.queenRooksAttacks[BLACK] |= Rmagic(bitboard_bitScanForward(pos.bb_pieces[q]), pos.bb_occupied);
+		pos.queenBishopsAttacks[BLACK] |= Bmagic(bitboard_bitScanForward(pos.bb_pieces[q]), pos.bb_occupied);
+	}
+
+	/* Generate rook attacks */
+
+	if (pos.bb_pieces[R]) {
+		pieces = pos.bb_pieces[R];
+		do {
+			pos.queenRooksAttacks[WHITE] |= Rmagic(bitboard_bitScanForward(LS1B(pieces)), pos.bb_occupied);
 		}
+		while ((pieces = RESET_LS1B(pieces)));
+	}
 
-		if (from_square & (pos.bb_pieces[Q] | pos.bb_pieces[R])) {
-			pos.queenRooksAttacks[WHITE] |= Rmagic(bitboard_bitScanForward(from_square), pos.bb_occupied);
+	if (pos.bb_pieces[r]) {
+		pieces = pos.bb_pieces[r];
+		do {
+			pos.queenRooksAttacks[BLACK] |= Rmagic(bitboard_bitScanForward(LS1B(pieces)), pos.bb_occupied);
 		}
+		while ((pieces = RESET_LS1B(pieces)));
+	}
 
-		if (from_square & (pos.bb_pieces[q] | pos.bb_pieces[r])) {
-			pos.queenRooksAttacks[BLACK] |= Rmagic(bitboard_bitScanForward(from_square), pos.bb_occupied);
+	/* Generate bishop attacks */
+
+	if (pos.bb_pieces[B]) {
+		pieces = pos.bb_pieces[B];
+		do {
+			pos.queenBishopsAttacks[WHITE] |= Bmagic(bitboard_bitScanForward(LS1B(pieces)), pos.bb_occupied);
 		}
+		while ((pieces = RESET_LS1B(pieces)));
+	}
 
-		if (from_square & (pos.bb_pieces[Q] | pos.bb_pieces[B])) {
-			pos.queenBishopsAttacks[WHITE] |= Bmagic(bitboard_bitScanForward(from_square), pos.bb_occupied);
+	if (pos.bb_pieces[b]) {
+		pieces = pos.bb_pieces[b];
+		do {
+			pos.queenBishopsAttacks[BLACK] |= Bmagic(bitboard_bitScanForward(LS1B(pieces)), pos.bb_occupied);
 		}
-
-		if (from_square & (pos.bb_pieces[q] | pos.bb_pieces[b])) {
-			pos.queenBishopsAttacks[BLACK] |= Bmagic(bitboard_bitScanForward(from_square), pos.bb_occupied);
-		}
-
-		non_pawns = RESET_LS1B(non_pawns);
+		while ((pieces = RESET_LS1B(pieces)));
 	}
 
 	/* Generate pawn attacks */
+
 	pos.pawnAttacks[WHITE] = (bitboard_noWeOne(pos.bb_pieces[P]) | bitboard_noEaOne(pos.bb_pieces[P]));
 	pos.pawnAttacks[BLACK] = (bitboard_soWeOne(pos.bb_pieces[p]) | bitboard_soEaOne(pos.bb_pieces[p]));
 }
