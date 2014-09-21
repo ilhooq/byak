@@ -101,7 +101,7 @@ static void INLINE position_refresh()
 	pos.bb_empty = ~pos.bb_occupied;
 }
 
-static void listAdd( Move *movelist, Square from_square, Square to_square, 
+static void INLINE listAdd( Move *movelist, Square from_square, Square to_square, 
 TypeMove type, char capture, Piece promoted_piece, Piece captured_piece)
 {
 	Move * move = &movelist[movelistcount];
