@@ -42,10 +42,10 @@ typedef struct {
 	U64 pinned; // Pinned squares
 	U64 pinner[64];
 
-	U64 kingAttacks;
-	U64 knightsAttacks;
-	U64 queenRooksAttacks;
-	U64 queenBishopsAttacks;
+	U64 kingAttacks[2];
+	U64 knightsAttacks[2];
+	U64 queenRooksAttacks[2];
+	U64 queenBishopsAttacks[2];
 
 	U64 pawnAttacks[2];
 
