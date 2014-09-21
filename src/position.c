@@ -964,6 +964,8 @@ int position_generateMoves(Move *movelist)
 	int from = 0;
 	U64 moves = EMPTY;
 	U64 pieces = OUR_PIECES;
+	U64 singlePushs = EMPTY;
+	U64 doublePushs = EMPTY;
 
 	U64 bb_enpassant = (pos.enpassant != NONE_SQUARE) ? SQ64(pos.enpassant) : EMPTY;
 
@@ -973,25 +975,21 @@ int position_generateMoves(Move *movelist)
 		moves = position_attacksFrom(from) & (OTHER_PIECES | pos.bb_empty);
 		while (moves) {
 			bb_to = LS1B(moves);
-
-			if (!canMove(bb_from, bb_to)) {
-				moves = RESET_LS1B(moves);
-				continue;
-			}
+			if (!canMove(bb_from, bb_to)) goto reset_move;
 
 			/* En passant capture */
 			if (bb_enpassant && (bb_to == bb_enpassant) && (bb_from & OUR_PAWNS) && canTakeEp(bb_from, bb_enpassant)) {
 				listAdd(movelist, from, bitboard_bitScanForward(bb_to), (MOVE_CAPTURE|MOVE_ENPASSANT));
+				goto reset_move;
 			}
 
 			/* Normal capture */
-			else if (bb_to & OTHER_PIECES) {
+			if (bb_to & OTHER_PIECES) {
 
 				if ((bb_from & OUR_PAWNS) && (RANK18 & bb_to)) {
 					/* We have a capture and promotion */
 					addPromotionMoves(movelist, from, bitboard_bitScanForward(bb_to), MOVE_CAPTURE);
 				}
-
 				else {
 					listAdd(movelist, from, bitboard_bitScanForward(bb_to), MOVE_CAPTURE);
 				}
@@ -1002,6 +1000,7 @@ int position_generateMoves(Move *movelist)
 				listAdd(movelist, from, bitboard_bitScanForward(bb_to), MOVE_NORMAL);
 			}
 
+			reset_move:
 			moves = RESET_LS1B(moves);
 		}
 		pieces = RESET_LS1B(pieces);
@@ -1036,9 +1035,6 @@ int position_generateMoves(Move *movelist)
 	* produce single pawn moves...these are not handled in generate_attacks
 	* since pawns can only attack diagonally (or enpassant)
 	*/
-
-	U64 singlePushs = EMPTY;
-	U64 doublePushs = EMPTY;
 
 	if (pos.side == WHITE) {
 		singlePushs = bitboard_nortOne(pos.bb_pieces[P]) & pos.bb_empty;
