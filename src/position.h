@@ -52,7 +52,7 @@ typedef struct {
 	int in_check;
 	int checkmated;
 
-	int enpassant;
+	U8 enpassant;
 
 	short castling_rights;
 

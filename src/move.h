@@ -26,23 +26,34 @@ typedef enum {
 	NORMAL, PAWN_DOUBLE, PROMOTION, ENPASSANT, CASTLE
 } TypeMove;
 
+#define MOVE_NULL              0 
+#define MOVE_NORMAL            0x1 
+#define MOVE_PAWN_DOUBLE       0x2   // 1 << 1
+#define MOVE_CAPTURE           0x4   // 1 << 2
+#define MOVE_PROMOTION         0x8   // 1 << 3
+#define MOVE_PROMOTION_QUEEN   0x10  // 1 << 4
+#define MOVE_PROMOTION_BISHOP  0x20  // 1 << 5
+#define MOVE_PROMOTION_KNIGHT  0x40  // 1 << 6
+#define MOVE_PROMOTION_ROOK    0x80  // 1 << 7
+#define MOVE_ENPASSANT         0x100 // 1 << 8
+#define MOVE_CASTLE            0x200 // 1 << 9
+#define MOVE_CASTLE_KS         0x400 // 1 << 10
+#define MOVE_CASTLE_QS         0x800 // 1 << 11
+
+/* 16 bytes */
 typedef struct {
-	Square from; // Square from
-	Square to;   // Square to
-	TypeMove type;
-	char capture; // 1: capture, 0: no capture
-	Piece promoted_piece; // Q,R,B,N,q,r,b,n
-	Piece captured_piece; // This will be determined when making move
-	Square ep;
-	short castling_rights;
 	// for search
-	int score;
-
+	/* 4 B */ unsigned int score;
+	/* 4 B */ unsigned int padding; // This is just to adjust the struct size to 16B
+	/* 2 B */ U16 flags;
+	/* 1 B */ U8 from; // Square from
+	/* 1 B */ U8 to;   // Square to
+	/* 1 B */ U8 captured_piece; // This will be determined when making move
+	/* 1 B */ U8 ep;   // Square enpassant
+	/* 1 B */ U8 castling_rights;
 } Move;
-
-Move *move_create(U64 from_square, U64 to_square, TypeMove type, 
-			char capture, Piece promoted_piece, Piece captured_piece);
 
 void move_display(Move *move);
 void move_displayAlg(Move *move);
+char move_getPromotionPieceChar(U8 flags);
 #endif

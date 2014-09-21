@@ -31,12 +31,8 @@ void test_DiagNE();
 void test_magicMoves();
 void testInBetweenSquares();
 void test_fen();
-void test_move();
-void test_linkedList();
 void test_genMoves(const char *fen);
 void test_perft(const char *fen, int depth);
 void test_divide(const char *fen, int depth);
 void test_perftSuite();
-void test_perftSuite2();
-void test_castle();
 #endif

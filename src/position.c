@@ -101,19 +101,12 @@ static void INLINE position_refresh()
 	pos.bb_empty = ~pos.bb_occupied;
 }
 
-static void INLINE listAdd( Move *movelist, Square from_square, Square to_square, 
-TypeMove type, char capture, Piece promoted_piece, Piece captured_piece)
+static void INLINE listAdd(Move *movelist, U8 from_square, U8 to_square, U16 type)
 {
 	Move * move = &movelist[movelistcount];
 	move->from = from_square;
 	move->to = to_square;
-	move->type = type;
-	move->capture = (capture)? capture : 0;
-	move->promoted_piece = (promoted_piece)? promoted_piece : NONE_PIECE;
-	// These will be determined when making move
-	move->captured_piece = NONE_PIECE;
-	move->ep = NONE_SQUARE;
-	move->castling_rights = 0;
+	move->flags = type;
 	movelistcount++;
 }
 
@@ -272,17 +265,19 @@ static int INLINE canMove(U64 from_square, U64 to_square)
 	return 1;
 }
 
-static void addPromotionMoves( Move *movelist, Square from_square, Square to_square, int capture)
+static void addPromotionMoves( Move *movelist, Square from_square, Square to_square, unsigned short type)
 {
+	/*
 	Square queen  = Q + pos.side;
 	Square bishop = B + pos.side;
 	Square knight = N + pos.side;
 	Square rook   = R + pos.side;
+	*/
 
-	listAdd(movelist, from_square, to_square, PROMOTION, capture, queen, 0);
-	listAdd(movelist, from_square, to_square, PROMOTION, capture, bishop, 0);
-	listAdd(movelist, from_square, to_square, PROMOTION, capture, knight, 0);
-	listAdd(movelist, from_square, to_square, PROMOTION, capture, rook, 0);
+	listAdd(movelist, from_square, to_square, (type|MOVE_PROMOTION|MOVE_PROMOTION_QUEEN));
+	listAdd(movelist, from_square, to_square, (type|MOVE_PROMOTION|MOVE_PROMOTION_BISHOP));
+	listAdd(movelist, from_square, to_square, (type|MOVE_PROMOTION|MOVE_PROMOTION_KNIGHT));
+	listAdd(movelist, from_square, to_square, (type|MOVE_PROMOTION|MOVE_PROMOTION_ROOK));
 }
 
 void static INLINE genPinned()
@@ -427,14 +422,14 @@ static void genCheckEvasions(Move *movelist)
 			if (bitboard_westOne(king_attackers) & OUR_PAWNS) {
 				bb_from = bitboard_westOne(king_attackers) & OUR_PAWNS;
 				if (canMove(bb_from, bb_enpassant)) {
-					listAdd(movelist, bitboard_bitScanForward(bb_from), pos.enpassant, ENPASSANT,1,0,0);
+					listAdd(movelist, bitboard_bitScanForward(bb_from), pos.enpassant, (MOVE_CAPTURE|MOVE_ENPASSANT));
 					our_attacking_pieces ^= bb_from;
 				}
 			}
 			if (bitboard_eastOne(king_attackers) & OUR_PAWNS) {
 				bb_from = bitboard_eastOne(king_attackers) & OUR_PAWNS;
 				if (canMove(bb_from, bb_enpassant)) {
-					listAdd(movelist, bitboard_bitScanForward(bb_from), pos.enpassant, ENPASSANT,1,0,0);
+					listAdd(movelist, bitboard_bitScanForward(bb_from), pos.enpassant, (MOVE_CAPTURE|MOVE_ENPASSANT));
 					our_attacking_pieces ^= bb_from;
 				}
 			}
@@ -450,9 +445,9 @@ static void genCheckEvasions(Move *movelist)
 				// Capture
 				if ((bb_from & OUR_PAWNS) && (RANK18 & bb_to)) {
 					// We have a capture and promotion
-					addPromotionMoves(movelist, from, to, 1);
+					addPromotionMoves(movelist, from, to, MOVE_CAPTURE);
 				} else {
-					listAdd(movelist, from, to, NORMAL,1,0,0);
+					listAdd(movelist, from, to, MOVE_CAPTURE);
 				}
 			}
 
@@ -490,7 +485,7 @@ static void genCheckEvasions(Move *movelist)
 					if (bb_to & RANK18)
 						addPromotionMoves(movelist, from, to, 0);
 					else
-						listAdd(movelist, from, to, NORMAL,0,0,0);
+						listAdd(movelist, from, to, MOVE_NORMAL);
 				}
 			}
 			singlePushs = RESET_LS1B(singlePushs);
@@ -501,7 +496,7 @@ static void genCheckEvasions(Move *movelist)
 			if (bb_to & obstructed) {
 				bb_from = (pos.side == WHITE) ? bb_to >> 16 : bb_to << 16;
 				if (canMove(bb_from, bb_to)) {
-					listAdd(movelist, bitboard_bitScanForward(bb_from), bitboard_bitScanForward(bb_to), PAWN_DOUBLE,0,0,0);
+					listAdd(movelist, bitboard_bitScanForward(bb_from), bitboard_bitScanForward(bb_to), MOVE_PAWN_DOUBLE);
 				}
 			}
 			doublePushs = RESET_LS1B(doublePushs);
@@ -515,7 +510,7 @@ static void genCheckEvasions(Move *movelist)
 				bb_from = LS1B(blockers);
 				if (canMove(bb_from, bb_to)) {
 					from = bitboard_bitScanForward(bb_from);
-					listAdd(movelist, from, to, NORMAL,0,0,0);
+					listAdd(movelist, from, to, MOVE_NORMAL);
 				}
 				blockers = RESET_LS1B(blockers);
 			}
@@ -544,11 +539,11 @@ static void genCheckEvasions(Move *movelist)
 		if (canMove(OUR_KING, bb_to)) {
 			if (bb_to & OTHER_PIECES) {
 				// capture
-				listAdd(movelist, from, bitboard_bitScanForward(bb_to), NORMAL,1,0,0);
+				listAdd(movelist, from, bitboard_bitScanForward(bb_to), MOVE_CAPTURE);
 			}
 			else {
 				// empty square
-				listAdd(movelist, from, bitboard_bitScanForward(bb_to), NORMAL,0,0,0);
+				listAdd(movelist, from, bitboard_bitScanForward(bb_to), MOVE_NORMAL);
 			}
 		}
 		kingMoves = RESET_LS1B(kingMoves);
@@ -736,14 +731,15 @@ int position_fromFen(const char *fen)
 
 void position_makeMove(Move *move)
 {
+	
+
 	U64 bb_from   = SQ64(move->from);
 	U64 bb_to     = SQ64(move->to);
 	Piece pieceFrom = NONE_PIECE;
 	int i = 0;
-
+	move->captured_piece = NONE_PIECE;
+	move->ep = NONE_SQUARE;
 	move->castling_rights = pos.castling_rights;
-
-	// move->prevHash = pos.hash;
 
 	/* Determine which piece type to move */
 	Piece piece[12] = {P,K,Q,N,B,R,p,k,q,n,b,r};
@@ -767,8 +763,8 @@ void position_makeMove(Move *move)
 		pos.enpassant = NONE_SQUARE;
 	}
 
-	if (move->capture) {
-		if (move->type == ENPASSANT) {
+	if (move->flags & MOVE_CAPTURE) {
+		if (move->flags & MOVE_ENPASSANT) {
 			if (bb_to & RANK6) {
 				/* We're dealing with white capturing black */
 				POS_DEL_PIECE(p, move->to - 8);
@@ -807,11 +803,23 @@ void position_makeMove(Move *move)
 	pos.hash ^= zobrist.castling[move->castling_rights];
 	pos.hash ^= zobrist.castling[pos.castling_rights];
 
-	if (move->type == PROMOTION) {
+	if (move->flags & MOVE_PROMOTION) {
 		POS_DEL_PIECE(P + pos.side, move->to);
-		POS_ADD_PIECE(move->promoted_piece, move->to);
+
+		if (move->flags & MOVE_PROMOTION_QUEEN) {
+			POS_ADD_PIECE(Q + pos.side , move->to);
+		}
+		else if (move->flags & MOVE_PROMOTION_BISHOP) {
+			POS_ADD_PIECE(B + pos.side , move->to);
+		}
+		else if (move->flags & MOVE_PROMOTION_KNIGHT) {
+			POS_ADD_PIECE(N + pos.side , move->to);
+		}
+		else if (move->flags & MOVE_PROMOTION_ROOK) {
+			POS_ADD_PIECE(R + pos.side , move->to);
+		}
 	}
-	else if (move->type == CASTLE) {
+	else if (move->flags & MOVE_CASTLE) {
 		switch ((int) move->to) {
 			case g1 : 
 				POS_MOVE_PIECE(R, h1, f1);
@@ -827,7 +835,7 @@ void position_makeMove(Move *move)
 				break;
 		}
 	}
-	else if (move->type == PAWN_DOUBLE) {
+	else if (move->flags & MOVE_PAWN_DOUBLE) {
 
 		if ((bitboard_westOne(bb_to) | bitboard_eastOne(bb_to)) & pos.bb_pieces[P + (1 ^ pos.side)]) {
 			// Activate new enPassant
@@ -864,9 +872,9 @@ void position_undoMove(Move *move)
 			break;
 		}
 	}
+
 	pos.hash ^= zobrist.piecesquare[pieceFrom][move->from];
 	pos.hash ^= zobrist.piecesquare[pieceFrom][move->to];
-
 
 	if (pos.enpassant != NONE_SQUARE) {
 		// Deactivate En passant
@@ -877,10 +885,11 @@ void position_undoMove(Move *move)
 		// Reactivate old state En passant
 		pos.hash ^= zobrist.ep[move->ep];
 	}
+
 	pos.enpassant = move->ep;
 
-	if (move->capture) {
-		if (move->type == ENPASSANT) {
+	if (move->flags & MOVE_CAPTURE) {
+		if (move->flags & MOVE_ENPASSANT) {
 			if (from_square & RANK6) {
 				/* Restore white's black pawn capture */
 				POS_ADD_PIECE(p, move->to - 8);
@@ -895,11 +904,24 @@ void position_undoMove(Move *move)
 		}
 	}
 
-	if (move->type == PROMOTION) {
-		POS_DEL_PIECE(move->promoted_piece, move->from);
+	if (move->flags & MOVE_PROMOTION) {
+
+		if (move->flags & MOVE_PROMOTION_QUEEN) {
+			POS_DEL_PIECE(Q + pos.side , move->to);
+		}
+		else if (move->flags & MOVE_PROMOTION_BISHOP) {
+			POS_DEL_PIECE(B + pos.side , move->to);
+		}
+		else if (move->flags & MOVE_PROMOTION_KNIGHT) {
+			POS_DEL_PIECE(N + pos.side , move->to);
+		}
+		else if (move->flags & MOVE_PROMOTION_ROOK) {
+			POS_DEL_PIECE(R + pos.side , move->to);
+		}
+
 		POS_ADD_PIECE(P + pos.side, move->from);
 	}
-	else if (move->type == CASTLE) {
+	else if (move->flags & MOVE_CASTLE) {
 		switch ((int) move->to) {
 			case g1 : 
 				POS_MOVE_PIECE(R, f1, h1);
@@ -919,7 +941,6 @@ void position_undoMove(Move *move)
 	pos.hash ^= zobrist.castling[pos.castling_rights];
 	pos.hash ^= zobrist.castling[move->castling_rights];
 	pos.castling_rights = move->castling_rights;
-	// pos.hash = move->prevHash;
 
 	position_refresh();
 }
@@ -972,7 +993,7 @@ int position_generateMoves(Move *movelist)
 
 			/* En passant capture */
 			if (bb_enpassant && (bb_to == bb_enpassant) && (bb_from & OUR_PAWNS) && canTakeEp(bb_from, bb_enpassant)) {
-				listAdd(movelist, from, bitboard_bitScanForward(bb_to), ENPASSANT,1,0,0);
+				listAdd(movelist, from, bitboard_bitScanForward(bb_to), (MOVE_CAPTURE|MOVE_ENPASSANT));
 			}
 
 			/* Normal capture */
@@ -980,17 +1001,17 @@ int position_generateMoves(Move *movelist)
 
 				if ((bb_from & OUR_PAWNS) && (RANK18 & bb_to)) {
 					/* We have a capture and promotion */
-					addPromotionMoves(movelist, from, bitboard_bitScanForward(bb_to), 1);
+					addPromotionMoves(movelist, from, bitboard_bitScanForward(bb_to), MOVE_CAPTURE);
 				}
 
 				else {
-					listAdd(movelist, from, bitboard_bitScanForward(bb_to), NORMAL,1,0,0);
+					listAdd(movelist, from, bitboard_bitScanForward(bb_to), MOVE_CAPTURE);
 				}
 			}
 
 			/* Empty square */
 			else if (bb_from & ~OUR_PAWNS) {
-				listAdd(movelist, from, bitboard_bitScanForward(bb_to), NORMAL,0,0,0);
+				listAdd(movelist, from, bitboard_bitScanForward(bb_to), MOVE_NORMAL);
 			}
 
 			moves = RESET_LS1B(moves);
@@ -1004,22 +1025,22 @@ int position_generateMoves(Move *movelist)
 
 		from = bitboard_bitScanForward(OUR_KING);
 		if ((pos.castling_rights & W_CASTLE_K) && !W_ROCK_ATTACKED_KS && !W_ROCK_OCCUPIED_KS) {
-			listAdd(movelist, from, g1, CASTLE,0,0,0);
+			listAdd(movelist, from, g1, (MOVE_CASTLE|MOVE_CASTLE_KS));
 		}
 
 		if ((pos.castling_rights & W_CASTLE_Q) && !W_ROCK_ATTACKED_QS && !W_ROCK_OCCUPIED_QS) {
-			listAdd(movelist, from, c1, CASTLE,0,0,0);
+			listAdd(movelist, from, c1, (MOVE_CASTLE|MOVE_CASTLE_QS));
 		}
 	}
 	else if (pos.side == BLACK && (pos.castling_rights & (B_CASTLE_K|B_CASTLE_Q))) {
 
 		from = bitboard_bitScanForward(OUR_KING);
 		if ((pos.castling_rights & B_CASTLE_K) && !B_ROCK_ATTACKED_KS && !B_ROCK_OCCUPIED_KS) {
-			listAdd(movelist, from, g8, CASTLE,0,0,0);
+			listAdd(movelist, from, g8, (MOVE_CASTLE|MOVE_CASTLE_KS));
 		}
 
 		if ((pos.castling_rights & B_CASTLE_Q) && !B_ROCK_ATTACKED_QS && !B_ROCK_OCCUPIED_QS) {
-			listAdd(movelist, from, c8, CASTLE,0,0,0);
+			listAdd(movelist, from, c8, (MOVE_CASTLE|MOVE_CASTLE_QS));
 		}
 	}
 
@@ -1051,9 +1072,9 @@ int position_generateMoves(Move *movelist)
 		if (bb_from & ~pos.pinned) {
 			/* Check promotion */
 			if (bb_to & RANK18)
-				addPromotionMoves(movelist, bitboard_bitScanForward(bb_from), bitboard_bitScanForward(bb_to), 0);
+				addPromotionMoves(movelist, bitboard_bitScanForward(bb_from), bitboard_bitScanForward(bb_to), MOVE_NORMAL);
 			else
-				listAdd(movelist, bitboard_bitScanForward(bb_from), bitboard_bitScanForward(bb_to), NORMAL,0,0,0);
+				listAdd(movelist, bitboard_bitScanForward(bb_from), bitboard_bitScanForward(bb_to), MOVE_NORMAL);
 		}
 		singlePushs = RESET_LS1B(singlePushs);
 	}
@@ -1062,7 +1083,7 @@ int position_generateMoves(Move *movelist)
 		bb_to = LS1B(doublePushs);
 		bb_from = (pos.side == WHITE) ? bb_to >> 16 : bb_to << 16;
 		if (bb_from & ~pos.pinned) {
-			listAdd(movelist, bitboard_bitScanForward(bb_from), bitboard_bitScanForward(bb_to), PAWN_DOUBLE,0,0,0);
+			listAdd(movelist, bitboard_bitScanForward(bb_from), bitboard_bitScanForward(bb_to), MOVE_PAWN_DOUBLE);
 		}
 		doublePushs = RESET_LS1B(doublePushs);
 	}

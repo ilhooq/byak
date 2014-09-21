@@ -43,8 +43,6 @@ void test_suite()
 	test_magicMoves();
 	testInBetweenSquares();
 	test_fen();
-	test_move();
-	test_linkedList();
 }
 
 void test_search(const char *fen)
@@ -56,27 +54,6 @@ void test_search(const char *fen)
 	infos.time[BLACK] = 300000;
 	infos.movetime = infos.time[pos.side] / 40;
 	search_start(&infos);
-}
-
-void test_castle()
-{
-	position_init();
-	position_fromFen( "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq -");
-	position_display();
-	// assert(pos->castling_rights & W_CASTLE_K);
-	position_makeMove(move_create(SQ64(h1), SQ64(g1), NORMAL, 0, 0, 0));
-	// assert(!(pos->castling_rights & W_CASTLE_K));
-
-	position_makeMove(move_create(SQ64(a6), SQ64(b5), NORMAL, 0, 0, 0));
-	position_makeMove(move_create(SQ64(g1), SQ64(h1), NORMAL, 0, 0, 0));
-	position_makeMove(move_create(SQ64(b5), SQ64(a6), NORMAL, 0, 0, 0));
-	// assert(!(pos->castling_rights & W_CASTLE_K));
-	position_undoMove(move_create(SQ64(b5), SQ64(a6), NORMAL, 0, 0, 0));
-	position_undoMove(move_create(SQ64(g1), SQ64(h1), NORMAL, 0, 0, 0));
-	position_undoMove(move_create(SQ64(a6), SQ64(b5), NORMAL, 0, 0, 0));
-	position_undoMove( move_create(SQ64(h1), SQ64(g1), NORMAL, 0, 0, 0));
-	// assert(!(pos->castling_rights & W_CASTLE_K));
-	position_display();
 }
 
 
@@ -121,36 +98,7 @@ void test_perft(const char *fen, int depth)
 	printf("depth:%i;time:%i;nodes:%llu;nps:%.0f\n", depth, timeused, ULL(nodes), nps);
 }
 
-void test_move()
-{
-	Move *move = move_create(C64(0x0000000000000800), C64(0x0000000008000000), NORMAL, 0, 0, 0);
-	Move *move2 = move_create(C64(0x0000000800000000), C64(0x0000040000000000), ENPASSANT, 1, 0, p);
-	move_display(move);
-	move_display(move2);
-}
-
 /* ************** Perft suite functions below ************** */
-
-void test_linkedList()
-{
-	printf("Test linked List\n");
-	Move *move = move_create(C64(0x0000000000000800), C64(0x0000000008000000), NORMAL, 0, 0, 0);
-	Move *move2 = move_create(C64(0x0000000000000800), C64(0x0000000008000000), NORMAL, 0, 0, 0);
-	Move *move3 = move_create(C64(0x0000000000000800), C64(0x0000000008000000), NORMAL, 0, 0, 0);
-	Move *move4 = move_create(C64(0x0000000800000000), C64(0x0000040000000000), ENPASSANT, 1, 0, p);
-	List *moveList = list_init();
-	list_append(moveList, move);
-	list_append(moveList, move2);
-	list_append(moveList, move3);
-	list_prepend(moveList, move4);
-	ListItem *item = moveList->first;
-	while (item != NULL){
-		move_display(item->data);
-		item = item->next;
-	}
-	list_destroy(moveList);
-}
-
 void test_fen()
 {
 	position_init();

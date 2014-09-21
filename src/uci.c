@@ -89,9 +89,7 @@ static Move uci_prepare_move(U64 from, U64 to, Piece promotion )
 	Move move;
 	move.from = bitboard_bitScanForward(from);
 	move.to = bitboard_bitScanForward(to);
-	move.capture = 0;
-	move.type = NORMAL;
-	move.promoted_piece = NONE_PIECE;
+	move.flags = MOVE_NORMAL;
 	move.captured_piece = NONE_PIECE;
 	move.castling_rights = 0;
 	move.ep = NONE_SQUARE;
@@ -99,32 +97,37 @@ static Move uci_prepare_move(U64 from, U64 to, Piece promotion )
 	/* Check castling */
 	if ((from & pos.bb_pieces[K]) && 
 		(move.from == e1 && (move.to == g1 || move.to == c1))) {
-		move.type = CASTLE;
+		move.flags = MOVE_CASTLE;
 	}
 	if ((from & pos.bb_pieces[k]) && 
 		(move.from == e8 && (move.to == g8 || move.to == c8))) {
-		move.type = CASTLE;
+		move.flags = MOVE_CASTLE;
 	}
 	/* check promotion */
 	if (promotion != NONE_PIECE) {
-		move.type = PROMOTION;
-		move.promoted_piece = promotion + pos.side;
+		move.flags = MOVE_PROMOTION;
+		switch(promotion) {
+			case Q : move.flags |= MOVE_PROMOTION_QUEEN; break;
+			case R : move.flags |= MOVE_PROMOTION_ROOK; break;
+			case B : move.flags |= MOVE_PROMOTION_BISHOP; break;
+			case K : move.flags |= MOVE_PROMOTION_KNIGHT; break;
+			default: break;
+		}
 	}
 	/* check capture */
 	if (pos.bb_occupied & to) {
-		move.capture = 1;
+		move.flags |= MOVE_CAPTURE;
 	}
 
 	if (from & pos.bb_pieces[P + pos.side]) {
 		/* check double pawn*/
 		if (abs(move.from - move.to) == 16) {
-			move.type = PAWN_DOUBLE;
+			move.flags = MOVE_PAWN_DOUBLE;
 		}
 		/* check enpassant */
-		if (!move.capture && 
+		if (!(move.flags & MOVE_CAPTURE) && 
 			(abs(move.from - move.to) == 9 || abs(move.from - move.to) == 7)) {
-			move.capture = 1;
-			move.type = ENPASSANT;
+			move.flags = (MOVE_CAPTURE|MOVE_ENPASSANT);
 		}
 	}
 	return move;
@@ -252,8 +255,8 @@ void uci_exec(char * token)
 void uci_print_move(Move *move)
 {
 	printf("%s%s%c", bitboard_binToAlg(SQ64(move->from)),
-		bitboard_binToAlg(SQ64(move->to)),
-		(move->type == PROMOTION) ? get_piece_letter(move->promoted_piece) : ' ');
+					 bitboard_binToAlg(SQ64(move->to)), 
+					 move_getPromotionPieceChar(move->flags));
 }
 
 void uci_print_currmove(Move * move, int depth, int mvNbr)
