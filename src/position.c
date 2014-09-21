@@ -895,16 +895,16 @@ void position_undoMove(Move *move)
 	if (move->flags & MOVE_PROMOTION) {
 
 		if (move->flags & MOVE_PROMOTION_QUEEN) {
-			POS_DEL_PIECE(Q + pos.side , move->to);
+			POS_DEL_PIECE(Q + pos.side , move->from);
 		}
 		else if (move->flags & MOVE_PROMOTION_BISHOP) {
-			POS_DEL_PIECE(B + pos.side , move->to);
+			POS_DEL_PIECE(B + pos.side , move->from);
 		}
 		else if (move->flags & MOVE_PROMOTION_KNIGHT) {
-			POS_DEL_PIECE(N + pos.side , move->to);
+			POS_DEL_PIECE(N + pos.side , move->from);
 		}
 		else if (move->flags & MOVE_PROMOTION_ROOK) {
-			POS_DEL_PIECE(R + pos.side , move->to);
+			POS_DEL_PIECE(R + pos.side , move->from);
 		}
 
 		POS_ADD_PIECE(P + pos.side, move->from);
