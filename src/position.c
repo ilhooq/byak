@@ -229,19 +229,6 @@ static int INLINE canMove(U64 from_square, U64 to_square)
 		return 0;
 	}
 
-	/* Make sure that king doesn't move into check */
-	if ((from_square & OUR_KING) && squareAttacked(bitboard_bitScanForward(to_square))) {
-		return 0;
-	}
-
-	if (from_square & OUR_KING) {
-		// Utiliser Rmagic Bmagic ici
-		U64 occupancy = pos.bb_occupied ^ OUR_KING;
-		if (bitboard_rankAttacks(occupancy, to_square) & OTHER_QUEEN_ROOKS) return 0;
-		if (bitboard_fileAttacks(occupancy, to_square) & OTHER_QUEEN_ROOKS) return 0;
-		if (bitboard_diagonalAttacks(occupancy, to_square) & OTHER_QUEEN_BISHOPS) return 0;
-	}
-
 	if (from_square & pos.pinned) {
 		U64 pinner = pos.pinner[bitboard_bitScanForward(from_square)];
 		/* Pinned piece can only move in the direction of the pinner attack ray */
@@ -260,6 +247,18 @@ static int INLINE canMove(U64 from_square, U64 to_square)
 			if ((file & from_square) && (file & to_square)) return 1;
 		}
 		return 0;
+	}
+
+	/* Make sure that king doesn't move into check */
+	if ((from_square & OUR_KING) && squareAttacked(bitboard_bitScanForward(to_square))) {
+		return 0;
+	}
+
+	/* Make sure that king doesn't move into the opposite attacking ray */
+	if (pos.in_check && (from_square & OUR_KING)) {
+		U64 occupancy = pos.bb_occupied ^ OUR_KING;
+		if (Rmagic(bitboard_bitScanForward(to_square), occupancy) & OTHER_QUEEN_ROOKS) return 0;
+		if (Bmagic(bitboard_bitScanForward(to_square), occupancy) & OTHER_QUEEN_BISHOPS) return 0;
 	}
 
 	return 1;
@@ -525,11 +524,7 @@ static void genCheckEvasions(Move *movelist)
 	*/
 
 	U64 kingMoves = bitboard_getKingMoves(OUR_KING) & (pos.bb_empty | OTHER_PIECES);
-
-	while(king_attackers) {
-		kingMoves &= ~position_attacksFrom(bitboard_bitScanForward(LS1B(king_attackers)));
-		king_attackers = RESET_LS1B(king_attackers);
-	}
+	
 	from = bitboard_bitScanForward(OUR_KING);
 
 	while(kingMoves) {
