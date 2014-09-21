@@ -393,8 +393,6 @@ static void genCheckEvasions(Move *movelist)
 
 	U64 king_attackers = position_getAttackersTo(king_sq) & OTHER_PIECES;
 
-	U64 bb_enpassant = (pos.enpassant != NONE_SQUARE) ? SQ64(pos.enpassant) : EMPTY;
-
 	// We can either
 	// 1. capture the attacking piece
 	// 2. block its path
@@ -416,21 +414,16 @@ static void genCheckEvasions(Move *movelist)
 		}
 
 		// Check for enpassant capture
-		if (bb_enpassant) {
+		if (pos.enpassant != NONE_SQUARE) {
 			// We know the king attacker is a pawn
-			if (bitboard_westOne(king_attackers) & OUR_PAWNS) {
-				bb_from = bitboard_westOne(king_attackers) & OUR_PAWNS;
-				if (canMove(bb_from, bb_enpassant)) {
-					listAdd(movelist, bitboard_bitScanForward(bb_from), pos.enpassant, (MOVE_CAPTURE|MOVE_ENPASSANT));
-					our_attacking_pieces ^= bb_from;
-				}
+			bb_to = SQ64(pos.enpassant);
+			if ((bb_from = (bitboard_westOne(king_attackers) & OUR_PAWNS)) && canMove(bb_from, bb_to)) {
+				listAdd(movelist, bitboard_bitScanForward(bb_from), pos.enpassant, (MOVE_CAPTURE|MOVE_ENPASSANT));
+				our_attacking_pieces ^= bb_from;
 			}
-			if (bitboard_eastOne(king_attackers) & OUR_PAWNS) {
-				bb_from = bitboard_eastOne(king_attackers) & OUR_PAWNS;
-				if (canMove(bb_from, bb_enpassant)) {
-					listAdd(movelist, bitboard_bitScanForward(bb_from), pos.enpassant, (MOVE_CAPTURE|MOVE_ENPASSANT));
-					our_attacking_pieces ^= bb_from;
-				}
+			if ((bb_from = (bitboard_eastOne(king_attackers) & OUR_PAWNS)) && canMove(bb_from, bb_to)) {
+				listAdd(movelist, bitboard_bitScanForward(bb_from), pos.enpassant, (MOVE_CAPTURE|MOVE_ENPASSANT));
+				our_attacking_pieces ^= bb_from;
 			}
 		}
 
