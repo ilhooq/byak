@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <string.h>
 
+#include "types.h"
 #include "bitboard.h"
 #include "magicmoves.h"
 #include "position.h"

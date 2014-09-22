@@ -114,13 +114,15 @@ U8 static INLINE bitboard_bitScanReverse(U64 bb)
  * @precondition bb != 0
  * @return index (0..63) of least significant one bit
  */
-U8 static INLINE bitboard_bitScanForward(U64 bb) 
+
+int static INLINE bitboard_bitScanForward(U64 bb) 
 {
 	assert(bb);
-	// U64 index;
-	__asm__("bsfq %0, %0" : "=r" (bb) : "0" (bb));
-	return (U8) bb;
+	U64 index;
+	__asm__("bsfq %1, %0" : "=r" (index) : "mr" (bb));
+	return (int) index;
 }
+
 
 /**
  * bitboard_bitScanReverse
