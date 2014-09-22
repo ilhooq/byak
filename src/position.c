@@ -769,27 +769,37 @@ void position_makeMove(Move *move)
 		}
 	}
 
-	/* castle flags
-	 * if either a king or a rook leaves its initial square, the side looses its castling-right.
-	 * The same happens if another piece moves to pos square (eg.: captures a rook on its initial square)
-	 */
-	switch (move->from) {
-		case h1: pos.castling_rights &= ~W_CASTLE_K; break;
-		case e1: pos.castling_rights &= ~(W_CASTLE_K|W_CASTLE_Q); break;
-		case a1: pos.castling_rights &= ~W_CASTLE_Q; break;
-		case h8: pos.castling_rights &= ~B_CASTLE_K; break;
-		case e8: pos.castling_rights &= ~(B_CASTLE_K|B_CASTLE_Q); break;
-		case a8: pos.castling_rights &= ~B_CASTLE_Q; break;
-		default:break;
+	/* 
+	*  castle flags
+	*  if either a king or a rook leaves its initial square, the side looses its castling-right.
+	*  The same happens if another piece moves to pos square (eg.: captures a rook on its initial square)
+	*/
+	if (pos.castling_rights & (W_CASTLE_K|W_CASTLE_Q)) {
+		switch (move->from) {
+			case h1: pos.castling_rights &= ~W_CASTLE_K; break;
+			case e1: pos.castling_rights &= ~(W_CASTLE_K|W_CASTLE_Q); break;
+			case a1: pos.castling_rights &= ~W_CASTLE_Q; break;
+			default:break;
+		}
+		// Should be a rook capture
+		switch (move->to) {
+			case h1: pos.castling_rights &= ~W_CASTLE_K; break;
+			case a1: pos.castling_rights &= ~W_CASTLE_Q; break;
+			default:break;
+		}
 	}
-	switch (move->to) {
-		case h1: pos.castling_rights &= ~W_CASTLE_K; break;
-		case e1: pos.castling_rights &= ~(W_CASTLE_K|W_CASTLE_Q); break;
-		case a1: pos.castling_rights &= ~W_CASTLE_Q; break;
-		case h8: pos.castling_rights &= ~B_CASTLE_K; break;
-		case e8: pos.castling_rights &= ~(B_CASTLE_K|B_CASTLE_Q); break;
-		case a8: pos.castling_rights &= ~B_CASTLE_Q; break;
-		default:break;
+	if (pos.castling_rights & (B_CASTLE_K|B_CASTLE_Q)) {
+		switch (move->from) {
+			case h8: pos.castling_rights &= ~B_CASTLE_K; break;
+			case e8: pos.castling_rights &= ~(B_CASTLE_K|B_CASTLE_Q); break;
+			case a8: pos.castling_rights &= ~B_CASTLE_Q; break;
+			default:break;
+		}
+		switch (move->to) {
+			case h8: pos.castling_rights &= ~B_CASTLE_K; break;
+			case a8: pos.castling_rights &= ~B_CASTLE_Q; break;
+			default:break;
+		}
 	}
 	pos.hash ^= zobrist.castling[move->castling_rights];
 	pos.hash ^= zobrist.castling[pos.castling_rights];
@@ -845,7 +855,6 @@ void position_makeMove(Move *move)
 void position_undoMove(Move *move)
 {
 	U64 from_square = SQ64(move->to);
-	U64 to_square =  SQ64(move->from);
 	Piece piece[12] = {P,K,Q,N,B,R,p,k,q,n,b,r};
 	int i = 0;
 
@@ -953,10 +962,6 @@ int position_generateMoves(Move *movelist)
 		return movelistcount ;
 	}
 
-	/*
-	At pos point we already know the attacks_from for all
-	pieces...we just need to remove our own pieces from the attack.
-	*/
 
 	U64 bb_from = EMPTY;
 	U64 bb_to = EMPTY;
@@ -1018,7 +1023,7 @@ int position_generateMoves(Move *movelist)
 			listAdd(movelist, from, c1, (MOVE_CASTLE|MOVE_CASTLE_QS));
 		}
 	}
-	else if (pos.side == BLACK && (pos.castling_rights & (B_CASTLE_K|B_CASTLE_Q))) {
+	else if (pos.castling_rights & (B_CASTLE_K|B_CASTLE_Q)) {
 
 		from = bitboard_bitScanForward(OUR_KING);
 		if ((pos.castling_rights & B_CASTLE_K) && !B_ROCK_ATTACKED_KS && !B_ROCK_OCCUPIED_KS) {
