@@ -90,7 +90,7 @@ static INLINE int bitboard_IPopCount(U64 x) {
 
 #if !(defined __LP64__ || defined __LLP64__) || defined _WIN32 && !defined _WIN64
 /* This code works for 32 bits or 64 bits procesors*/
-int static INLINE bitboard_bitScanForward(U64 bb) 
+int static INLINE bitboard_bsf(U64 bb) 
 {
 	assert(bb);
 	/* Returns one plus the index of the 
@@ -98,7 +98,7 @@ int static INLINE bitboard_bitScanForward(U64 bb)
 	return __builtin_ffsll(bb) - 1;
 }
 
-int static INLINE bitboard_bitScanReverse(U64 bb) 
+int static INLINE bitboard_bsr(U64 bb) 
 {
 	assert(bb);
 	/* Returns the number of leading 0-bits in x, starting at the most 
@@ -109,13 +109,13 @@ int static INLINE bitboard_bitScanReverse(U64 bb)
 #else
 /* This code is only for 64 bits procesors */
 /**
- * bitboard_bitScanForward
+ * bitboard bitScanForward
  * @param bb bitboard to scan
  * @precondition bb != 0
  * @return index (0..63) of least significant one bit
  */
 
-int static INLINE bitboard_bitScanForward(U64 bb) 
+int static INLINE bitboard_bsf(U64 bb) 
 {
 	assert(bb);
 	U64 index;
@@ -125,12 +125,12 @@ int static INLINE bitboard_bitScanForward(U64 bb)
 
 
 /**
- * bitboard_bitScanReverse
+ * bitboard bitScanReverse
  * @param bb bitboard to scan
  * @precondition bb != 0
  * @return index (0..63) of most significant one bit
  */
-int static INLINE bitboard_bitScanReverse(U64 bb) 
+int static INLINE bitboard_bsr(U64 bb) 
 {
 	assert(bb);
 	U64 index;

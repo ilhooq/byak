@@ -241,7 +241,7 @@ void bitboard_init()
 
 char* bitboard_binToAlg(U64 bb)
 {
-	return bin2alg[bitboard_bitScanForward(bb)];
+	return bin2alg[bitboard_bsf(bb)];
 }
 
 U64 bitboard_algToBin(const char *alg)
@@ -305,63 +305,63 @@ void bitboard_display(U64 bb)
 
 U64 bitboard_getKingMoves(U64 bb)
 {
-	return king_moves[bitboard_bitScanForward(bb)];
+	return king_moves[bitboard_bsf(bb)];
 }
 
 U64 bitboard_getKnightMoves(U64 bb)
 {
-	return knight_moves[bitboard_bitScanForward(bb)];
+	return knight_moves[bitboard_bsf(bb)];
 }
 
 
 U64 bitboard_getFile(U64 bb)
 {
-	return file_mask[bitboard_bitScanForward(bb)];
+	return file_mask[bitboard_bsf(bb)];
 }
 
 int bitboard_getFileIdx(U64 bb)
 {
-	return file[bitboard_bitScanForward(bb)];
+	return file[bitboard_bsf(bb)];
 }
 
 U64 bitboard_getRank(U64 bb)
 {
-	return rank_mask[bitboard_bitScanForward(bb)];
+	return rank_mask[bitboard_bsf(bb)];
 }
 
 U64 bitboard_getDiagNE(U64 bb)
 {
-	return diag_mask_ne[bitboard_bitScanForward(bb)];
+	return diag_mask_ne[bitboard_bsf(bb)];
 }
 
 U64 bitboard_getDiagNW(U64 bb)
 {
-	return diag_mask_nw[bitboard_bitScanForward(bb)];
+	return diag_mask_nw[bitboard_bsf(bb)];
 }
 
 U64 bitboard_getObstructed(U64 from, U64 to)
 {
-	return obstructed_mask[bitboard_bitScanForward(from)][bitboard_bitScanForward(to)];
+	return obstructed_mask[bitboard_bsf(from)][bitboard_bsf(to)];
 }
 
 
 U64 bitboard_fileAttacks(U64 occupancy, U64 fromSquare)
 {
-	Square idx= bitboard_bitScanForward(fromSquare);
+	Square idx= bitboard_bsf(fromSquare);
 	U64 Rattacks = Rmagic(idx, occupancy);
 	return Rattacks & ~rank_mask[idx];
 }
 
 U64 bitboard_rankAttacks(U64 occupancy, U64 fromSquare)
 {
-	Square idx= bitboard_bitScanForward(fromSquare);
+	Square idx= bitboard_bsf(fromSquare);
 	U64 Rattacks = Rmagic(idx, occupancy);
 	return Rattacks &  ~file_mask[idx];
 }
 
 U64 bitboard_diagonalAttacks(U64 occupancy, U64 fromSquare)
 {
-	return Bmagic(bitboard_bitScanForward(fromSquare), occupancy);
+	return Bmagic(bitboard_bsf(fromSquare), occupancy);
 }
 
 U64 bitboard_xrayFileAttacks(U64 occupancy, U64 blockers, U64 fromSquare)
