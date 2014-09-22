@@ -119,7 +119,7 @@ int static INLINE bitboard_bitScanForward(U64 bb)
 {
 	assert(bb);
 	U64 index;
-	__asm__("bsfq %1, %0" : "=r" (index) : "mr" (bb));
+	__asm__("bsfq %1, %0" : "=r" (index) : "m" (bb));
 	return (int) index;
 }
 
@@ -134,7 +134,7 @@ int static INLINE bitboard_bitScanReverse(U64 bb)
 {
 	assert(bb);
 	U64 index;
-	__asm__("bsrq %0, %0": "=r" (index) : "mr" (bb));
+	__asm__("bsrq %1, %0": "=r" (index) : "m" (bb));
 	return (int) index;
 }
 
