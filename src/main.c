@@ -48,14 +48,34 @@ int main (int argc, char ** argv) {
 			return 0;
 		}
 
-		if (!strcmp(argv[i], "testsearch")) {
-			/* Command to test a search against a fen string.
+		if (!strcmp(argv[i], "timesearch")) {
+			/* Command to test a search against a fen string with a 
+			   limited amount of time (in ms) for each side.
 			   For instance :
-			  ./byak testsearch "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1"
+			  ./byak testsearch "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1" 300000
 			*/
 			if (i+1 < argc) {
 				char * fen = argv[i+1];
-				test_search(fen);
+				if (i+2 < argc) {
+					int time = atoi(argv[i+2]);
+					test_timeSearch(fen, time);
+				}
+			}
+			return 0;
+		}
+
+		if (!strcmp(argv[i], "depthsearch")) {
+			/* Command to test a search against a fen string with a 
+			   limited depth.
+			   For instance :
+			  ./byak testsearch "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1" 6
+			*/
+			if (i+1 < argc) {
+				char * fen = argv[i+1];
+				if (i+2 < argc) {
+					int depth = atoi(argv[i+2]);
+					test_depthSearch(fen, depth);
+				}
 			}
 			return 0;
 		}

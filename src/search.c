@@ -113,6 +113,8 @@ void* search_start(void* data)
 	infos.my_side = pos.side;
 	infos.stop = 0;
 
+	if (!infos.depth) infos.depth = MAX_DEPTH;
+
 	memset(infos.pv, 0, sizeof(infos.pv));
 	memset(infos.pv_length, 0, sizeof(infos.pv_length));
 
@@ -134,7 +136,7 @@ void search_iterate()
 {
 	int depth;
 
-	for (depth=1; depth <= MAX_DEPTH; depth++) {
+	for (depth=1; depth <= infos.depth; depth++) {
 
 		if (infos.stop) break;
 

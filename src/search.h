@@ -22,13 +22,14 @@
 #define MAX_DEPTH 32
 
 typedef struct {
-	int time[2];
 	int time_start;
 	int time_used;
+	int time[2];
 	int movetime;
 	int my_side;
 	int stop;
 	int nodes;
+	int depth;
 	Move pv[MAX_DEPTH][MAX_DEPTH];
 	int pv_length[MAX_DEPTH];
 } SearchInfos;

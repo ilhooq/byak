@@ -45,17 +45,27 @@ void test_suite()
 	test_fen();
 }
 
-void test_search(const char *fen)
+void test_timeSearch(const char *fen, int mstime)
 {
 	position_init();
 	position_fromFen(fen);
-	SearchInfos infos;
-	infos.time[WHITE] = 300000;
-	infos.time[BLACK] = 300000;
+	SearchInfos infos = {0};
+	infos.time[WHITE] = mstime;
+	infos.time[BLACK] = mstime;
 	infos.movetime = infos.time[pos.side] / 40;
 	search_start(&infos);
 }
 
+void test_depthSearch(const char *fen, int depth)
+{
+	position_init();
+	position_fromFen(fen);
+	SearchInfos infos = {0};
+	infos.time[WHITE] = 0;
+	infos.time[BLACK] = 0;
+	infos.depth = depth;
+	search_start(&infos);
+}
 
 void test_divide(const char *fen, int depth)
 {

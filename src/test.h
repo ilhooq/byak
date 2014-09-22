@@ -20,7 +20,8 @@
 #define TEST_H
 
 void test_suite();
-void test_search(const char *fen);
+void test_timeSearch(const char *fen, int mstime);
+void test_depthSearch(const char *fen, int depth);
 void test_kingMoves();
 void test_knightMoves();
 void test_bin2alg();
