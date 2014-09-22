@@ -27,11 +27,18 @@
 #include "move.h"
 #include "tt.h"
 
-#define POS_ADD_PIECE(piece, sq) pos.bb_pieces[(piece)] |= SQ64((sq)); pos.hash ^= zobrist.piecesquare[(piece)][(sq)]
+#define POS_ADD_PIECE(piece, sq) \
+	pos.bb_pieces[(piece)] |= SQ64((sq));\
+	pos.hash ^= zobrist.piecesquare[(piece)][(sq)]
 
-#define POS_DEL_PIECE(piece, sq) pos.bb_pieces[(piece)] ^= SQ64((sq)); pos.hash ^= zobrist.piecesquare[(piece)][(sq)]
+#define POS_DEL_PIECE(piece, sq) \
+	pos.bb_pieces[(piece)] ^= SQ64((sq));\
+	pos.hash ^= zobrist.piecesquare[(piece)][(sq)]
 
-#define POS_MOVE_PIECE(piece, sq_from, sq_to) POS_DEL_PIECE(piece, sq_from); POS_ADD_PIECE(piece, sq_to);
+#define POS_MOVE_PIECE(piece, sq_from, sq_to) \
+	pos.bb_pieces[(piece)] ^=  SQ64((sq_from)) ^ SQ64((sq_to)); \
+	pos.hash ^= zobrist.piecesquare[(piece)][(sq_from)]; \
+	pos.hash ^= zobrist.piecesquare[(piece)][(sq_to)];
 
 #define OUR_SIDE pos.side
 #define OTHER_SIDE (1 ^ pos.side)
@@ -719,8 +726,6 @@ int position_fromFen(const char *fen)
 
 void position_makeMove(Move *move)
 {
-	
-
 	U64 bb_from   = SQ64(move->from);
 	U64 bb_to     = SQ64(move->to);
 	Piece pieceFrom = NONE_PIECE;
@@ -736,10 +741,8 @@ void position_makeMove(Move *move)
 		if (pos.bb_pieces[piece[i]] & bb_to) move->captured_piece = piece[i];
 	}
 
-	/* Move the piece in one instruction : */
-	pos.bb_pieces[pieceFrom] ^=  bb_from ^ bb_to;
-	pos.hash ^= zobrist.piecesquare[pieceFrom][move->from];
-	pos.hash ^= zobrist.piecesquare[pieceFrom][move->to];
+	/* Move the piece */
+	POS_MOVE_PIECE(pieceFrom, move->from, move->to);
 
 	if (pos.enpassant != NONE_SQUARE) {
 		/* 
@@ -843,7 +846,6 @@ void position_undoMove(Move *move)
 {
 	U64 from_square = SQ64(move->to);
 	U64 to_square =  SQ64(move->from);
-	U64 bb_fromTo = to_square | from_square;
 	Piece piece[12] = {P,K,Q,N,B,R,p,k,q,n,b,r};
 	int i = 0;
 
@@ -856,13 +858,10 @@ void position_undoMove(Move *move)
 	for (i=0; i < 12; i++) {
 		if (pos.bb_pieces[piece[i]] & from_square) {
 			pieceFrom = piece[i];
-			pos.bb_pieces[pieceFrom] ^=  bb_fromTo;
+			POS_MOVE_PIECE(pieceFrom, move->to, move->from);
 			break;
 		}
 	}
-
-	pos.hash ^= zobrist.piecesquare[pieceFrom][move->from];
-	pos.hash ^= zobrist.piecesquare[pieceFrom][move->to];
 
 	if (pos.enpassant != NONE_SQUARE) {
 		// Deactivate En passant
