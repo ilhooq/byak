@@ -406,7 +406,7 @@ static void genCheckEvasions(Move *movelist)
 	// 2. block its path
 	// 3. move out of the way
 
-	if (bitboard_IPopCount(king_attackers) == 1) {
+	if (bitboard_popCount(king_attackers) == 1) {
 		U64 blockers = EMPTY;
 
 		/*

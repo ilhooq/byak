@@ -189,12 +189,11 @@ int search_alphaBeta(int alpha, int beta, int depth, int ply)
 	if (infos.stop) return 0;
 
 	if (depth == 0) {
+		infos.nodes++;
 		return search_quiesce(alpha, beta);
 	}
 
 	U16 tt_flag = TT_ALPHA;
-
-	infos.nodes++;
 
 	int tt_val = tt_probe(pos.hash, alpha, beta, depth);
 

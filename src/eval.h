@@ -18,9 +18,26 @@
 
 #ifndef EVAL_H
 #define EVAL_H
-#define INFINITY 10000
+
+#include "types.h"
 #include "move.h"
-// void eval_init(U8 side);
+
+#define INFINITY 10000
+
+typedef enum enumStage {
+	OPENING,
+	MIDDLEGAME,
+	ENDGAME,
+} Stage;
+
+/*16 Bytes */
+typedef struct {
+	U64 mask;
+	int score;
+	Piece piece;
+} Eval;
+
+void eval_init();
 int eval_position();
 int eval_move(Move * move);
 #endif

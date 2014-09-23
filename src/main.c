@@ -22,6 +22,7 @@
 #include "types.h"
 #include "bitboard.h"
 #include "position.h"
+#include "eval.h"
 #include "prng.h"
 #include "tt.h"
 #include "test.h"
@@ -38,6 +39,7 @@ int main (int argc, char ** argv) {
 	/* 144MB */
 	tt_init(144000000);
 	position_init();
+	eval_init();
 
 	int i;
 
@@ -103,6 +105,18 @@ int main (int argc, char ** argv) {
 					int depth = atoi(argv[i+2]);
 					test_divide(fen, depth);
 				}
+			}
+			return 0;
+		}
+		
+		if (!strcmp(argv[i], "eval")) {
+			/* Evaluate a position a fen string.
+			   For instance :
+			  ./byak eval "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1"
+			*/
+			if (i+1 < argc) {
+				char * fen = argv[i+1];
+				test_eval(fen);
 			}
 			return 0;
 		}

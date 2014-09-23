@@ -78,7 +78,9 @@
 /* (bb << 7) & ~FILEH */
 #define bitboard_noWeOne(constantU64) (((constantU64) << 7) & C64(0x7f7f7f7f7f7f7f7f))
 
-static INLINE int bitboard_IPopCount(U64 x) {
+
+static INLINE int bitboard_popCount(U64 bb) {
+	/*
 	int count = 0;
 	while (x) {
 		count++;
@@ -86,6 +88,12 @@ static INLINE int bitboard_IPopCount(U64 x) {
 		x = RESET_LS1B(x);
 	}
 	return count;
+	*/
+	return __builtin_popcountll(bb);
+}
+
+static INLINE U64 bitboard_swap (U64 bb) {
+	return __builtin_bswap64(bb);
 }
 
 #if !(defined __LP64__ || defined __LLP64__) || defined _WIN32 && !defined _WIN64

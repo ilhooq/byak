@@ -30,6 +30,7 @@
 #include "tt.h"
 #include "time.h"
 #include "search.h"
+#include "eval.h"
 
 void test_suite()
 {
@@ -106,6 +107,14 @@ void test_perft(const char *fen, int depth)
 	timeused = GET_TIME() - start;
 	nps = (float) nodes / ((float) timeused /1000);
 	printf("depth:%i;time:%i;nodes:%llu;nps:%.0f\n", depth, timeused, ULL(nodes), nps);
+}
+
+void test_eval(const char *fen)
+{
+	position_init();
+	position_fromFen(fen);
+	eval_init();
+	printf("Score: %i \n", eval_position());
 }
 
 /* ************** Perft suite functions below ************** */
