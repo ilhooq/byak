@@ -28,6 +28,8 @@
 #include "time.h"
 #include "uci.h"
 
+static int movestogo = 40;
+
 static SearchInfos infos;
 
 static void _updatePV(Move * mv, int ply)
@@ -106,12 +108,27 @@ static void timeControl()
 void* search_start(void* data)
 {
 	SearchInfos * pInfos = data;
-	// Dereference pointer
+
 	infos = *pInfos;
 
 	infos.time_start = GET_TIME();
 	infos.my_side = pos.side;
 	infos.stop = 0;
+
+	if (infos.time[pos.side]) {
+		// Avoids division by zero 
+		if (movestogo < 1) movestogo += 10;
+
+		if (infos.time[pos.side] >= infos.time[1 ^ pos.side]) {
+			// We have more time than the other side, so we simply 
+			// divide our time to the estimated moves to go
+			infos.movetime = infos.time[pos.side] / movestogo;
+		} else {
+			// Try to accelerate the time to find the best move
+			infos.movetime = (infos.time[pos.side] - (infos.time[1 ^ pos.side]-infos.time[pos.side])) / movestogo;
+		}
+		movestogo--;
+	}
 
 	if (!infos.depth) infos.depth = MAX_DEPTH;
 

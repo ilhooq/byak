@@ -33,12 +33,11 @@
 #include "search.h"
 #include "time.h"
 
-static int movestogo;
 
 static void uci_go(char * token)
 {
 	char * subtoken = NULL;
-	SearchInfos infos;
+	SearchInfos infos = {0};
 
 	infos.time[WHITE] = 0;
 	infos.time[BLACK] = 0;
@@ -51,16 +50,8 @@ static void uci_go(char * token)
 		infos.time[BLACK] = atoi(subtoken+6);
 	}
 
-	if ((subtoken = strstr(token, "movestogo"))) {
-		movestogo = atoi(subtoken+10);
-	} else {
-		movestogo--;
-	}
-
-	infos.movetime = infos.time[pos.side] / movestogo;
-
 	if ((subtoken = strstr(token, "infinite"))) {
-		infos.movetime = 0;
+		infos.depth = MAX_DEPTH;
 	}
 
 	#if !defined(_WIN32) && !defined(_WIN64)
@@ -183,7 +174,6 @@ void uci_exec(char * token)
 	}
 
 	if (!strcmp(token, "isready")) {
-		movestogo = 40;
 		printf("readyok\n");
 	}
 
