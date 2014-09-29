@@ -98,7 +98,7 @@ static INLINE U64 bitboard_swap (U64 bb) {
 
 #if !(defined __LP64__ || defined __LLP64__) || defined _WIN32 && !defined _WIN64
 /* This code works for 32 bits or 64 bits procesors*/
-int static INLINE bitboard_bsf(U64 bb) 
+static INLINE Square bitboard_bsf(U64 bb) 
 {
 	assert(bb);
 	/* Returns one plus the index of the 
@@ -106,7 +106,7 @@ int static INLINE bitboard_bsf(U64 bb)
 	return __builtin_ffsll(bb) - 1;
 }
 
-int static INLINE bitboard_bsr(U64 bb) 
+static INLINE Square bitboard_bsr(U64 bb) 
 {
 	assert(bb);
 	/* Returns the number of leading 0-bits in x, starting at the most 
@@ -123,12 +123,12 @@ int static INLINE bitboard_bsr(U64 bb)
  * @return index (0..63) of least significant one bit
  */
 
-int static INLINE bitboard_bsf(U64 bb) 
+static INLINE Square bitboard_bsf(U64 bb) 
 {
 	assert(bb);
 	U64 index;
 	__asm__("bsfq %1, %0" : "=r" (index) : "m" (bb));
-	return (int) index;
+	return (Square) index;
 }
 
 
@@ -138,15 +138,28 @@ int static INLINE bitboard_bsf(U64 bb)
  * @precondition bb != 0
  * @return index (0..63) of most significant one bit
  */
-int static INLINE bitboard_bsr(U64 bb) 
+static INLINE Square bitboard_bsr(U64 bb) 
 {
 	assert(bb);
 	U64 index;
 	__asm__("bsrq %1, %0": "=r" (index) : "m" (bb));
-	return (int) index;
+	return (Square) index;
 }
 
 #endif
+
+/**
+ * Get the index and reset the less signifiant bit
+ * @param bb bitboard to scan
+ * @precondition bb != 0
+ * @return index (0..63) of most significant one bit
+ */
+static INLINE Square bitboard_poplsb(U64 *bb) {
+	const Square s = bitboard_bsf(*bb);
+	*bb &= *bb - 1;
+	return s;
+}
+
 
 void bitboard_init();
 
@@ -164,32 +177,28 @@ void bitboard_display(U64 bb);
 
 
 
-U64 bitboard_getKingMoves(U64 bb);
+U64 bitboard_getKingMoves(Square sq);
 
-U64 bitboard_getKnightMoves(U64 bb);
+U64 bitboard_getKnightMoves(Square sq);
 
-U64 bitboard_getFile(U64 bb);
+U64 bitboard_getFile(Square sq);
 
-int bitboard_getFileIdx(U64 bb);
+U64 bitboard_getRank(Square sq);
 
-U64 bitboard_getRank(U64 bb);
+U64 bitboard_getDiagNE(Square sq);
 
-U64 bitboard_getDiagNE(U64 bb);
+U64 bitboard_getDiagNW(Square sq);
 
-U64 bitboard_getDiagNW(U64 bb);
+U64 bitboard_getObstructed(Square from, Square to);
 
-U64 bitboard_getObstructed(U64 from, U64 to);
+U64 bitboard_fileAttacks(U64 occupancy, Square from_sq);
 
-U64 bitboard_fileAttacks(U64 occupancy, U64 fromSquare);
+U64 bitboard_rankAttacks(U64 occupancy, Square from_sq);
 
-U64 bitboard_rankAttacks(U64 occupancy, U64 fromSquare);
+U64 bitboard_xrayFileAttacks(U64 occupancy, U64 blockers, Square from_sq);
 
-U64 bitboard_diagonalAttacks(U64 occupancy, U64 fromSquare);
+U64 bitboard_xrayRankAttacks(U64 occupancy, U64 blockers, Square from_sq);
 
-U64 bitboard_xrayFileAttacks(U64 occupancy, U64 blockers, U64 fromSquare);
-
-U64 bitboard_xrayRankAttacks(U64 occupancy, U64 blockers, U64 fromSquare);
-
-U64 bitboard_xrayDiagonalAttacks(U64 occupancy, U64 blockers, U64 fromSquare);
+U64 bitboard_xrayDiagonalAttacks(U64 occupancy, U64 blockers, Square from_sq);
 
 #endif

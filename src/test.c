@@ -133,76 +133,76 @@ void test_magicMoves()
 void testInBetweenSquares() 
 {
 	printf("Test in between squares\n");
-	assert(bitboard_getObstructed(C64(1) << d1, C64(1) << d4) == C64(0x0000000000080800));
-	assert(bitboard_getObstructed(C64(1) << a1, C64(1) << h8) == C64(0x0040201008040200));
-	assert(bitboard_getObstructed(C64(1) << a8, C64(1) << h8) == C64(0x7E00000000000000));
-	assert(bitboard_getObstructed(C64(1) << a1, C64(1) << h1) == C64(0x000000000000007E));
+	assert(bitboard_getObstructed(d1, d4) == C64(0x0000000000080800));
+	assert(bitboard_getObstructed(a1, h8) == C64(0x0040201008040200));
+	assert(bitboard_getObstructed(a8, h8) == C64(0x7E00000000000000));
+	assert(bitboard_getObstructed(a1, h1) == C64(0x000000000000007E));
 }
 
 void test_kingMoves()
 {
 	printf("Test King Moves\n");
-	assert(bitboard_getKingMoves(C64(1) << a8) == C64(0x0203000000000000));
-	assert(bitboard_getKingMoves(C64(1) << d8) == C64(0x141C000000000000));
-	assert(bitboard_getKingMoves(C64(1) << h8) == C64(0x40C0000000000000));
-	assert(bitboard_getKingMoves(C64(1) << a1) == C64(0x0000000000000302));
-	assert(bitboard_getKingMoves(C64(1) << d1) == C64(0x0000000000001C14));
-	assert(bitboard_getKingMoves(C64(1) << h1) == C64(0x000000000000C040));
+	assert(bitboard_getKingMoves(a8) == C64(0x0203000000000000));
+	assert(bitboard_getKingMoves(d8) == C64(0x141C000000000000));
+	assert(bitboard_getKingMoves(h8) == C64(0x40C0000000000000));
+	assert(bitboard_getKingMoves(a1) == C64(0x0000000000000302));
+	assert(bitboard_getKingMoves(d1) == C64(0x0000000000001C14));
+	assert(bitboard_getKingMoves(h1) == C64(0x000000000000C040));
 }
 
 void test_knightMoves()
 {
 	printf("Test Knight Moves\n");
-	assert(bitboard_getKnightMoves(C64(1) << a8) == C64(0x0004020000000000));
-	assert(bitboard_getKnightMoves(C64(1) << d8) == C64(0x0022140000000000));
-	assert(bitboard_getKnightMoves(C64(1) << h8) == C64(0x0020400000000000));
-	assert(bitboard_getKnightMoves(C64(1) << a1) == C64(0x0000000000020400));
-	assert(bitboard_getKnightMoves(C64(1) << d1) == C64(0x0000000000142200));
-	assert(bitboard_getKnightMoves(C64(1) << h1) == C64(0x0000000000402000));
+	assert(bitboard_getKnightMoves(a8) == C64(0x0004020000000000));
+	assert(bitboard_getKnightMoves(d8) == C64(0x0022140000000000));
+	assert(bitboard_getKnightMoves(h8) == C64(0x0020400000000000));
+	assert(bitboard_getKnightMoves(a1) == C64(0x0000000000020400));
+	assert(bitboard_getKnightMoves(d1) == C64(0x0000000000142200));
+	assert(bitboard_getKnightMoves(h1) == C64(0x0000000000402000));
 }
 
 void test_FileRankAccess()
 {
 	printf("Test file and rank access\n");
-	assert(bitboard_getRank(C64(1) << a8) == RANK8);
-	assert(bitboard_getRank(C64(1) << h8) == RANK8);
-	assert(bitboard_getRank(C64(1) << e4) == RANK4);
-	assert(bitboard_getRank(C64(1) << d5) == RANK5);
-	assert(bitboard_getRank(C64(1) << h1) == RANK1);
-	assert(bitboard_getRank(C64(1) << a1) == RANK1);
+	assert(bitboard_getRank(a8) == RANK8);
+	assert(bitboard_getRank(h8) == RANK8);
+	assert(bitboard_getRank(e4) == RANK4);
+	assert(bitboard_getRank(d5) == RANK5);
+	assert(bitboard_getRank(h1) == RANK1);
+	assert(bitboard_getRank(a1) == RANK1);
 
-	assert(bitboard_getFile(C64(1) << a8) == FILEA);
-	assert(bitboard_getFile(C64(1) << h8) == FILEH);
-	assert(bitboard_getFile(C64(1) << e4) == FILEE);
-	assert(bitboard_getFile(C64(1) << d5) == FILED);
-	assert(bitboard_getFile(C64(1) << h1) == FILEH);
-	assert(bitboard_getFile(C64(1) << a1) == FILEA);
+	assert(bitboard_getFile(a8) == FILEA);
+	assert(bitboard_getFile(h8) == FILEH);
+	assert(bitboard_getFile(e4) == FILEE);
+	assert(bitboard_getFile(d5) == FILED);
+	assert(bitboard_getFile(h1) == FILEH);
+	assert(bitboard_getFile(a1) == FILEA);
 }
 
 void test_DiagNW()
 {
 	printf("Test diag NW\n");
-	assert(bitboard_getDiagNW(C64(1) << a8) == C64(0x0102040810204080));
-	assert(bitboard_getDiagNW(C64(1) << h1) == C64(0x0102040810204080));
-	assert(bitboard_getDiagNW(C64(1) << a2) == C64(0x0000000000000102));
-	assert(bitboard_getDiagNW(C64(1) << b1) == C64(0x0000000000000102));
-	assert(bitboard_getDiagNW(C64(1) << a1) == C64(0x0000000000000001));
-	assert(bitboard_getDiagNW(C64(1) << h8) == C64(0x8000000000000000));
-	assert(bitboard_getDiagNW(C64(1) << g8) == C64(0x4080000000000000));
-	assert(bitboard_getDiagNW(C64(1) << h7) == C64(0x4080000000000000));
+	assert(bitboard_getDiagNW(a8) == C64(0x0102040810204080));
+	assert(bitboard_getDiagNW(h1) == C64(0x0102040810204080));
+	assert(bitboard_getDiagNW(a2) == C64(0x0000000000000102));
+	assert(bitboard_getDiagNW(b1) == C64(0x0000000000000102));
+	assert(bitboard_getDiagNW(a1) == C64(0x0000000000000001));
+	assert(bitboard_getDiagNW(h8) == C64(0x8000000000000000));
+	assert(bitboard_getDiagNW(g8) == C64(0x4080000000000000));
+	assert(bitboard_getDiagNW(h7) == C64(0x4080000000000000));
 }
 
 void test_DiagNE()
 {
 	printf("Test diag NE()\n");
-	assert(bitboard_getDiagNE(C64(1) << a8) == C64(0x0100000000000000));
-	assert(bitboard_getDiagNE(C64(1) << h1) == C64(0x0000000000000080));
-	assert(bitboard_getDiagNE(C64(1) << a7) == C64(0x0201000000000000));
-	assert(bitboard_getDiagNE(C64(1) << b8) == C64(0x0201000000000000));
-	assert(bitboard_getDiagNE(C64(1) << a1) == C64(0x8040201008040201));
-	assert(bitboard_getDiagNE(C64(1) << h8) == C64(0x8040201008040201));
-	assert(bitboard_getDiagNE(C64(1) << g1) == C64(0x0000000000008040));
-	assert(bitboard_getDiagNE(C64(1) << h2) == C64(0x0000000000008040));
+	assert(bitboard_getDiagNE(a8) == C64(0x0100000000000000));
+	assert(bitboard_getDiagNE(h1) == C64(0x0000000000000080));
+	assert(bitboard_getDiagNE(a7) == C64(0x0201000000000000));
+	assert(bitboard_getDiagNE(b8) == C64(0x0201000000000000));
+	assert(bitboard_getDiagNE(a1) == C64(0x8040201008040201));
+	assert(bitboard_getDiagNE(h8) == C64(0x8040201008040201));
+	assert(bitboard_getDiagNE(g1) == C64(0x0000000000008040));
+	assert(bitboard_getDiagNE(h2) == C64(0x0000000000008040));
 }
 
 void test_bin2alg()

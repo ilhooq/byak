@@ -132,11 +132,11 @@ static U64 position_getAttackersTo(Square sq) {
 	}
 
 	if ((pos.knightsAttacks[WHITE] | pos.knightsAttacks[BLACK]) & bb_sq) {
-		attackers |= bitboard_getKnightMoves(bb_sq) & (pos.bb_pieces[N] | pos.bb_pieces[n]);
+		attackers |= bitboard_getKnightMoves(sq) & (pos.bb_pieces[N] | pos.bb_pieces[n]);
 	}
 
 	if ((pos.kingAttacks[WHITE] | pos.kingAttacks[BLACK]) & bb_sq) {
-		attackers |= bitboard_getKingMoves(bb_sq) & (pos.bb_pieces[K] | pos.bb_pieces[k]);
+		attackers |= bitboard_getKingMoves(sq) & (pos.bb_pieces[K] | pos.bb_pieces[k]);
 	}
 
 	if ((pos.queenRooksAttacks[WHITE] | pos.queenRooksAttacks[BLACK]) & bb_sq) {
@@ -164,11 +164,11 @@ static U64 position_attacksFrom(Square sq)
 	}
 
 	if (bb_sq & (pos.bb_pieces[K] | pos.bb_pieces[k])) {
-		return bitboard_getKingMoves(bb_sq);
+		return bitboard_getKingMoves(sq);
 	}
 
 	if (bb_sq & (pos.bb_pieces[N] | pos.bb_pieces[n])) {
-		return bitboard_getKnightMoves(bb_sq);
+		return bitboard_getKnightMoves(sq);
 	}
 
 	if (bb_sq & QUEEN_ROOKS) {
@@ -220,9 +220,10 @@ static int canTakeEp(U64 from, U64 to)
 	// Check if the pawn is not pinned on the rank when the last double move is cleared
 	if ((OUR_KING & rank45) && (OTHER_QUEEN_ROOKS & rank45)) {
 		U64 last_double = (pos.side == WHITE)? bitboard_soutOne(to) : bitboard_nortOne(to);
-		U64 pinner = bitboard_xrayRankAttacks(pos.bb_occupied ^ last_double, OUR_PIECES, OUR_KING) & OTHER_QUEEN_ROOKS;
+		Square king_sq = bitboard_bsf(OUR_KING);
+		U64 pinner = bitboard_xrayRankAttacks(pos.bb_occupied ^ last_double, OUR_PIECES, king_sq) & OTHER_QUEEN_ROOKS;
 		if (pinner) {
-			U64 pinned = bitboard_getObstructed(pinner, OUR_KING) & OUR_PIECES;
+			U64 pinned = bitboard_getObstructed(bitboard_bsf(pinner), king_sq) & OUR_PIECES;
 			if (pinned & from) return 0;
 		}
 	}
@@ -239,19 +240,20 @@ static int INLINE canMove(U64 from_square, U64 to_square)
 
 	if (from_square & pos.pinned) {
 		U64 pinner = pos.pinner[bitboard_bsf(from_square)];
+		Square pinner_sq = bitboard_bsf(pinner);
 		/* Pinned piece can only move in the direction of the pinner attack ray */
 		/* Knights cannot move if pinned */
 		if (pinner & OTHER_QUEEN_BISHOPS) {
-			U64 diagNE = bitboard_getDiagNE(pinner);
+			U64 diagNE = bitboard_getDiagNE(pinner_sq);
 			if ((diagNE & from_square) && (diagNE & to_square)) return 1;
-			U64 diagNW = bitboard_getDiagNW(pinner);
+			U64 diagNW = bitboard_getDiagNW(pinner_sq);
 			if ((diagNW & from_square) && (diagNW & to_square)) return 1;
 		}
 
 		if (pinner & OTHER_QUEEN_ROOKS) {
-			U64 rank = bitboard_getRank(pinner);
+			U64 rank = bitboard_getRank(pinner_sq);
 			if ((rank & from_square) && (rank & to_square)) return 1;
-			U64 file = bitboard_getFile(pinner);
+			U64 file = bitboard_getFile(pinner_sq);
 			if ((file & from_square) && (file & to_square)) return 1;
 		}
 		return 0;
@@ -292,14 +294,15 @@ void static INLINE genPinned()
 	U64 pinned = EMPTY;
 	U64 pinner = EMPTY;
 	U64 sq = EMPTY;
+	Square king_sq = bitboard_bsf(OUR_KING);
 
-	pinner = bitboard_xrayFileAttacks(pos.bb_occupied, OUR_PIECES, OUR_KING) & OTHER_QUEEN_ROOKS;
-	pinner |= bitboard_xrayRankAttacks(pos.bb_occupied, OUR_PIECES, OUR_KING) & OTHER_QUEEN_ROOKS;
-	pinner |= bitboard_xrayDiagonalAttacks(pos.bb_occupied, OUR_PIECES, OUR_KING) & OTHER_QUEEN_BISHOPS;
+	pinner = bitboard_xrayFileAttacks(pos.bb_occupied, OUR_PIECES, king_sq) & OTHER_QUEEN_ROOKS;
+	pinner |= bitboard_xrayRankAttacks(pos.bb_occupied, OUR_PIECES, king_sq) & OTHER_QUEEN_ROOKS;
+	pinner |= bitboard_xrayDiagonalAttacks(pos.bb_occupied, OUR_PIECES, king_sq) & OTHER_QUEEN_BISHOPS;
 
 	while (pinner) {
 		sq  = LS1B(pinner);
-		pinned = bitboard_getObstructed(sq, OUR_KING) & OUR_PIECES;
+		pinned = bitboard_getObstructed(bitboard_bsf(sq), king_sq) & OUR_PIECES;
 		pos.pinned |= pinned;
 		pos.pinner[bitboard_bsf(pinned)] = sq;
 		pinner = RESET_LS1B(pinner);
@@ -316,29 +319,21 @@ void genAttacks()
 	U64 pieces = EMPTY;
 
 	/* Generate king attacks */
-	pos.kingAttacks[WHITE] = bitboard_getKingMoves(pos.bb_pieces[K]);
-	pos.kingAttacks[BLACK] = bitboard_getKingMoves(pos.bb_pieces[k]);
+	pos.kingAttacks[WHITE] = bitboard_getKingMoves(bitboard_bsf(pos.bb_pieces[K]));
+	pos.kingAttacks[BLACK] = bitboard_getKingMoves(bitboard_bsf(pos.bb_pieces[k]));
 
 	/* Generate knight attacks */
-
-	if (pos.bb_pieces[N]) {
-		pieces = pos.bb_pieces[N];
-		do {
-			pos.knightsAttacks[WHITE] |= bitboard_getKnightMoves(LS1B(pieces));
-		}
-		while ((pieces = RESET_LS1B(pieces)));
+	pieces = pos.bb_pieces[N];
+	while (pieces) {
+		pos.knightsAttacks[WHITE] |= bitboard_getKnightMoves(bitboard_poplsb(&pieces));
 	}
 
-	if (pos.bb_pieces[n]) {
-		pieces = pos.bb_pieces[n];
-		do {
-			pos.knightsAttacks[BLACK] |= bitboard_getKnightMoves(LS1B(pieces));
-		}
-		while ((pieces = RESET_LS1B(pieces)));
+	pieces = pos.bb_pieces[n];
+	while (pieces) {
+		pos.knightsAttacks[BLACK] |= bitboard_getKnightMoves(bitboard_poplsb(&pieces));
 	}
 
 	/* Generate queen attacks */
-
 	if (pos.bb_pieces[Q]) {
 		pos.queenRooksAttacks[WHITE] |= Rmagic(bitboard_bsf(pos.bb_pieces[Q]), pos.bb_occupied);
 		pos.queenBishopsAttacks[WHITE] |= Bmagic(bitboard_bsf(pos.bb_pieces[Q]), pos.bb_occupied);
@@ -350,39 +345,25 @@ void genAttacks()
 	}
 
 	/* Generate rook attacks */
-
-	if (pos.bb_pieces[R]) {
-		pieces = pos.bb_pieces[R];
-		do {
-			pos.queenRooksAttacks[WHITE] |= Rmagic(bitboard_bsf(LS1B(pieces)), pos.bb_occupied);
-		}
-		while ((pieces = RESET_LS1B(pieces)));
+	pieces = pos.bb_pieces[R];
+	while (pieces) {
+		pos.queenRooksAttacks[WHITE] |= Rmagic(bitboard_poplsb(&pieces), pos.bb_occupied);
 	}
 
-	if (pos.bb_pieces[r]) {
-		pieces = pos.bb_pieces[r];
-		do {
-			pos.queenRooksAttacks[BLACK] |= Rmagic(bitboard_bsf(LS1B(pieces)), pos.bb_occupied);
-		}
-		while ((pieces = RESET_LS1B(pieces)));
+	pieces = pos.bb_pieces[r];
+	while (pieces) {
+		pos.queenRooksAttacks[BLACK] |= Rmagic(bitboard_poplsb(&pieces), pos.bb_occupied);
 	}
 
 	/* Generate bishop attacks */
-
-	if (pos.bb_pieces[B]) {
-		pieces = pos.bb_pieces[B];
-		do {
-			pos.queenBishopsAttacks[WHITE] |= Bmagic(bitboard_bsf(LS1B(pieces)), pos.bb_occupied);
-		}
-		while ((pieces = RESET_LS1B(pieces)));
+	pieces = pos.bb_pieces[B];
+	while (pieces) {
+		pos.queenBishopsAttacks[WHITE] |= Bmagic(bitboard_poplsb(&pieces), pos.bb_occupied);
 	}
 
-	if (pos.bb_pieces[b]) {
-		pieces = pos.bb_pieces[b];
-		do {
-			pos.queenBishopsAttacks[BLACK] |= Bmagic(bitboard_bsf(LS1B(pieces)), pos.bb_occupied);
-		}
-		while ((pieces = RESET_LS1B(pieces)));
+	pieces = pos.bb_pieces[b];
+	while (pieces) {
+		pos.queenBishopsAttacks[BLACK] |= Bmagic(bitboard_poplsb(&pieces), pos.bb_occupied);
 	}
 
 	/* Generate pawn attacks */
@@ -397,7 +378,7 @@ static void genCheckEvasions(Move *movelist)
 	assert(pos.in_check);
 	U64 bb_from = EMPTY, bb_to = EMPTY;
 	int from = 0, to = 0;
-	int king_sq = bitboard_bsf(OUR_KING);
+	Square king_sq = bitboard_bsf(OUR_KING);
 
 	U64 king_attackers = position_getAttackersTo(king_sq) & OTHER_PIECES;
 
@@ -408,13 +389,14 @@ static void genCheckEvasions(Move *movelist)
 
 	if (bitboard_popCount(king_attackers) == 1) {
 		U64 blockers = EMPTY;
+		Square king_attacker = bitboard_bsf(king_attackers);
 
 		/*
 		###########################################################
 		1. Try to capture the attacking piece
 		###########################################################
 		*/
-		U64 our_attacking_pieces = position_getAttackersTo(bitboard_bsf(king_attackers)) & OUR_PIECES;
+		U64 our_attacking_pieces = position_getAttackersTo(king_attacker) & OUR_PIECES;
 
 		if (our_attacking_pieces & OUR_KING) {
 			// The king capture is processed in the Move out the way part
@@ -472,7 +454,7 @@ static void genCheckEvasions(Move *movelist)
 			doublePushs = bitboard_soutOne(singlePushs) & pos.bb_empty & RANK5;
 		}
 
-		obstructed = bitboard_getObstructed(king_attackers, OUR_KING);
+		obstructed = bitboard_getObstructed(king_attacker, king_sq);
 
 		while (singlePushs) {
 			bb_to = LS1B(singlePushs);
@@ -524,7 +506,7 @@ static void genCheckEvasions(Move *movelist)
 	################################################################
 	*/
 
-	U64 kingMoves = bitboard_getKingMoves(OUR_KING) & (pos.bb_empty | OTHER_PIECES);
+	U64 kingMoves = bitboard_getKingMoves(king_sq) & (pos.bb_empty | OTHER_PIECES);
 	
 	from = bitboard_bsf(OUR_KING);
 

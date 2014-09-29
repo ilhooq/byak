@@ -31,9 +31,6 @@ static U64 knight_moves[64];
 /** King moves mask for each square */
 static U64 king_moves[64];
 
-static int file[64];
-static int rank[64];
-
 /** Rank mask for each square */
 static U64 rank_mask[64];
 
@@ -97,7 +94,6 @@ static void gen_files()
 	for (i=0 ;i < 8; i++) {
 		for (j=0; j < 8; j++) {
 			file_mask[count] = FILEA << j;
-			file[count] = j;
 			count++;
 		}
 	}
@@ -110,7 +106,6 @@ static void  gen_ranks()
 	for (i=0 ;i < 8; i++) {
 		for (j=0; j < 8; j++) {
 			rank_mask[count] = RANK1 << (8*i);
-			rank[count] = j;
 			count++;
 		}
 	}
@@ -303,93 +298,80 @@ void bitboard_display(U64 bb)
 	printf("      a   b   c   d   e   f   g   h\n");
 }
 
-U64 bitboard_getKingMoves(U64 bb)
+U64 bitboard_getKingMoves(Square sq)
 {
-	return king_moves[bitboard_bsf(bb)];
+	return king_moves[sq];
 }
 
-U64 bitboard_getKnightMoves(U64 bb)
+U64 bitboard_getKnightMoves(Square sq)
 {
-	return knight_moves[bitboard_bsf(bb)];
-}
-
-
-U64 bitboard_getFile(U64 bb)
-{
-	return file_mask[bitboard_bsf(bb)];
-}
-
-int bitboard_getFileIdx(U64 bb)
-{
-	return file[bitboard_bsf(bb)];
-}
-
-U64 bitboard_getRank(U64 bb)
-{
-	return rank_mask[bitboard_bsf(bb)];
-}
-
-U64 bitboard_getDiagNE(U64 bb)
-{
-	return diag_mask_ne[bitboard_bsf(bb)];
-}
-
-U64 bitboard_getDiagNW(U64 bb)
-{
-	return diag_mask_nw[bitboard_bsf(bb)];
-}
-
-U64 bitboard_getObstructed(U64 from, U64 to)
-{
-	return obstructed_mask[bitboard_bsf(from)][bitboard_bsf(to)];
+	return knight_moves[sq];
 }
 
 
-U64 bitboard_fileAttacks(U64 occupancy, U64 fromSquare)
+U64 bitboard_getFile(Square sq)
 {
-	Square idx= bitboard_bsf(fromSquare);
-	U64 Rattacks = Rmagic(idx, occupancy);
-	return Rattacks & ~rank_mask[idx];
+	return file_mask[sq];
 }
 
-U64 bitboard_rankAttacks(U64 occupancy, U64 fromSquare)
+U64 bitboard_getRank(Square sq)
 {
-	Square idx= bitboard_bsf(fromSquare);
-	U64 Rattacks = Rmagic(idx, occupancy);
-	return Rattacks &  ~file_mask[idx];
+	return rank_mask[sq];
 }
 
-U64 bitboard_diagonalAttacks(U64 occupancy, U64 fromSquare)
+U64 bitboard_getDiagNE(Square sq)
 {
-	return Bmagic(bitboard_bsf(fromSquare), occupancy);
+	return diag_mask_ne[sq];
 }
 
-U64 bitboard_xrayFileAttacks(U64 occupancy, U64 blockers, U64 fromSquare)
+U64 bitboard_getDiagNW(Square sq)
 {
-	U64 attacks = bitboard_fileAttacks(occupancy, fromSquare);
+	return diag_mask_nw[sq];
+}
+
+U64 bitboard_getObstructed(Square from, Square to)
+{
+	return obstructed_mask[from][to];
+}
+
+U64 bitboard_fileAttacks(U64 occupancy, Square from_sq)
+{
+	U64 Rattacks = Rmagic(from_sq, occupancy);
+	return Rattacks & ~rank_mask[from_sq];
+}
+
+U64 bitboard_rankAttacks(U64 occupancy, Square from_sq)
+{
+	U64 Rattacks = Rmagic(from_sq, occupancy);
+	return Rattacks &  ~file_mask[from_sq];
+}
+
+U64 bitboard_xrayFileAttacks(U64 occupancy, U64 blockers, Square from_sq)
+{
+	U64 attacks = bitboard_fileAttacks(occupancy, from_sq);
 	blockers &= attacks & C64(0x00FFFFFFFFFFFF00);
 	if (blockers == 0) {
 		return blockers;
 	}
-	return attacks ^ bitboard_fileAttacks(occupancy ^ blockers, fromSquare);
+	return attacks ^ bitboard_fileAttacks(occupancy ^ blockers, from_sq);
 }
 
-U64 bitboard_xrayRankAttacks(U64 occupancy, U64 blockers, U64 fromSquare)
+U64 bitboard_xrayRankAttacks(U64 occupancy, U64 blockers, Square from_sq)
 {
-	U64 attacks = bitboard_rankAttacks(occupancy, fromSquare);
+	U64 attacks = bitboard_rankAttacks(occupancy, from_sq);
 	blockers &= attacks & C64(0x7E7E7E7E7E7E7E7E);
 	if (blockers == 0) {
 		return blockers;
 	}
-	return attacks ^ bitboard_rankAttacks(occupancy ^ blockers, fromSquare);
+	return attacks ^ bitboard_rankAttacks(occupancy ^ blockers, from_sq);
 }
 
-U64 bitboard_xrayDiagonalAttacks(U64 occupancy, U64 blockers, U64 fromSquare)
+U64 bitboard_xrayDiagonalAttacks(U64 occupancy, U64 blockers, Square from_sq)
 {
-	U64 attacks = bitboard_diagonalAttacks(occupancy, fromSquare);
+	U64 attacks = Bmagic(from_sq, occupancy);
 	blockers &= attacks & C64(0x007E7E7E7E7E7E00);
 	if (blockers == 0) {
 		return blockers;
 	}
-	return attacks ^ bitboard_diagonalAttacks(occupancy ^ blockers, fromSquare);
+	return attacks ^ Bmagic(from_sq, occupancy ^ blockers);
 }
