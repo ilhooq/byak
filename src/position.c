@@ -317,6 +317,7 @@ void static INLINE genPinned()
 void genAttacks()
 {
 	U64 pieces = EMPTY;
+	Square sq;
 
 	/* Generate king attacks */
 	pos.kingAttacks[WHITE] = bitboard_getKingMoves(bitboard_bsf(pos.bb_pieces[K]));
@@ -347,23 +348,27 @@ void genAttacks()
 	/* Generate rook attacks */
 	pieces = pos.bb_pieces[R];
 	while (pieces) {
-		pos.queenRooksAttacks[WHITE] |= Rmagic(bitboard_poplsb(&pieces), pos.bb_occupied);
+		sq = bitboard_poplsb(&pieces);
+		pos.queenRooksAttacks[WHITE] |= Rmagic(sq, pos.bb_occupied);
 	}
 
 	pieces = pos.bb_pieces[r];
 	while (pieces) {
-		pos.queenRooksAttacks[BLACK] |= Rmagic(bitboard_poplsb(&pieces), pos.bb_occupied);
+		sq = bitboard_poplsb(&pieces);
+		pos.queenRooksAttacks[BLACK] |= Rmagic(sq, pos.bb_occupied);
 	}
 
 	/* Generate bishop attacks */
 	pieces = pos.bb_pieces[B];
 	while (pieces) {
-		pos.queenBishopsAttacks[WHITE] |= Bmagic(bitboard_poplsb(&pieces), pos.bb_occupied);
+		sq = bitboard_poplsb(&pieces);
+		pos.queenBishopsAttacks[WHITE] |= Bmagic(sq, pos.bb_occupied);
 	}
 
 	pieces = pos.bb_pieces[b];
 	while (pieces) {
-		pos.queenBishopsAttacks[BLACK] |= Bmagic(bitboard_poplsb(&pieces), pos.bb_occupied);
+		sq = bitboard_poplsb(&pieces);
+		pos.queenBishopsAttacks[BLACK] |= Bmagic(sq, pos.bb_occupied);
 	}
 
 	/* Generate pawn attacks */
