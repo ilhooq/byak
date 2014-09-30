@@ -155,20 +155,20 @@ static U64 position_attacksFrom(Square sq)
 	U64 bb_sq = SQ64(sq);
 	U64 attacks = EMPTY;
 
-	if (bb_sq & pos.bb_pieces[P]) {
-		return (bitboard_noWeOne(bb_sq) | bitboard_noEaOne(bb_sq));
-	}
-
-	if (bb_sq & pos.bb_pieces[p]) {
-		return (bitboard_soWeOne(bb_sq) | bitboard_soEaOne(bb_sq));
-	}
-
 	if (bb_sq & (pos.bb_pieces[K] | pos.bb_pieces[k])) {
 		return bitboard_getKingMoves(sq);
 	}
 
 	if (bb_sq & (pos.bb_pieces[N] | pos.bb_pieces[n])) {
 		return bitboard_getKnightMoves(sq);
+	}
+	
+	if (bb_sq & pos.bb_pieces[P]) {
+		return (bitboard_noWeOne(bb_sq) | bitboard_noEaOne(bb_sq));
+	}
+
+	if (bb_sq & pos.bb_pieces[p]) {
+		return (bitboard_soWeOne(bb_sq) | bitboard_soEaOne(bb_sq));
 	}
 
 	if (bb_sq & QUEEN_ROOKS) {
@@ -335,14 +335,18 @@ void genAttacks()
 	}
 
 	/* Generate queen attacks */
-	if (pos.bb_pieces[Q]) {
-		pos.queenRooksAttacks[WHITE] |= Rmagic(bitboard_bsf(pos.bb_pieces[Q]), pos.bb_occupied);
-		pos.queenBishopsAttacks[WHITE] |= Bmagic(bitboard_bsf(pos.bb_pieces[Q]), pos.bb_occupied);
+	pieces = pos.bb_pieces[Q];
+	while (pieces) {
+		sq = bitboard_poplsb(&pieces);
+		pos.queenRooksAttacks[WHITE] |= Rmagic(sq, pos.bb_occupied);
+		pos.queenBishopsAttacks[WHITE] |= Bmagic(sq, pos.bb_occupied);
 	}
 
-	if (pos.bb_pieces[q]) {
-		pos.queenRooksAttacks[BLACK] |= Rmagic(bitboard_bsf(pos.bb_pieces[q]), pos.bb_occupied);
-		pos.queenBishopsAttacks[BLACK] |= Bmagic(bitboard_bsf(pos.bb_pieces[q]), pos.bb_occupied);
+	pieces = pos.bb_pieces[q];
+	while (pieces) {
+		sq = bitboard_poplsb(&pieces);
+		pos.queenRooksAttacks[BLACK] |= Rmagic(sq, pos.bb_occupied);
+		pos.queenBishopsAttacks[BLACK] |= Bmagic(sq, pos.bb_occupied);
 	}
 
 	/* Generate rook attacks */
@@ -953,49 +957,78 @@ int position_generateMoves(Move *movelist)
 
 	U64 bb_from = EMPTY;
 	U64 bb_to = EMPTY;
-	int from = 0;
+	Square from, to;
 	U64 moves = EMPTY;
-	U64 pieces = OUR_PIECES;
+	U64 pieces = OUR_PIECES & ~OUR_PAWNS;
 	U64 singlePushs = EMPTY;
 	U64 doublePushs = EMPTY;
 
 	U64 bb_enpassant = (pos.enpassant != NONE_SQUARE) ? SQ64(pos.enpassant) : EMPTY;
+	
+	U8 i;
+
+	moves = pos.pawnAttacks[pos.side] & OTHER_PIECES;
+	const char directions[2][2] = {{-9, -7},{7, 9}};
+
+	while (moves) {
+		to = bitboard_poplsb(&moves);
+		bb_to = SQ64(to);
+		for (i = 0; i < 2; i++) {
+			from = to + directions[pos.side][i];
+
+			bb_from = SQ64(from);
+			bb_from &= (i)? ~FILEA : ~FILEH;
+
+			if ((bb_from & OUR_PAWNS) && canMove(bb_from, bb_to)) {
+				if (RANK18 & bb_to) {
+					/* We have a capture and promotion */
+					addPromotionMoves(movelist, from, to, MOVE_CAPTURE);
+				}
+				else {
+					listAdd(movelist, from, to, MOVE_CAPTURE);
+				}
+			}
+		}
+	}
+
+	if (bb_enpassant) {
+		moves = pos.pawnAttacks[pos.side] & bb_enpassant;
+
+		while (moves) {
+			to = bitboard_poplsb(&moves);
+			bb_to = SQ64(to);
+			for (i = 0; i < 2; i++) {
+				from = to + directions[pos.side][i];
+
+				bb_from = SQ64(from);
+				bb_from &= (i)? ~FILEA : ~FILEH;
+
+				if ((bb_from & OUR_PAWNS) && canMove(bb_from, bb_to) && canTakeEp(bb_from, bb_enpassant)) {
+					listAdd(movelist, from, to, (MOVE_CAPTURE|MOVE_ENPASSANT));
+				}
+			}
+		}
+	}
 
 	while (pieces) {
 		bb_from = LS1B(pieces);
-		from = bitboard_bsf(bb_from);
+		from = bitboard_poplsb(&pieces);
 		moves = position_attacksFrom(from) & (OTHER_PIECES | pos.bb_empty);
 		while (moves) {
 			bb_to = LS1B(moves);
-			if (!canMove(bb_from, bb_to)) goto reset_move;
-
-			/* En passant capture */
-			if (bb_enpassant && (bb_to == bb_enpassant) && (bb_from & OUR_PAWNS) && canTakeEp(bb_from, bb_enpassant)) {
-				listAdd(movelist, from, bitboard_bsf(bb_to), (MOVE_CAPTURE|MOVE_ENPASSANT));
-				goto reset_move;
-			}
-
-			/* Normal capture */
-			if (bb_to & OTHER_PIECES) {
-
-				if ((bb_from & OUR_PAWNS) && (RANK18 & bb_to)) {
-					/* We have a capture and promotion */
-					addPromotionMoves(movelist, from, bitboard_bsf(bb_to), MOVE_CAPTURE);
+			to = bitboard_poplsb(&moves);
+			if (canMove(bb_from, bb_to)) {
+				/* Normal capture */
+				if (bb_to & OTHER_PIECES) {
+					listAdd(movelist, from, to, MOVE_CAPTURE);
 				}
+
+				/* Empty square */
 				else {
-					listAdd(movelist, from, bitboard_bsf(bb_to), MOVE_CAPTURE);
+					listAdd(movelist, from, to, MOVE_NORMAL);
 				}
 			}
-
-			/* Empty square */
-			else if (bb_from & ~OUR_PAWNS) {
-				listAdd(movelist, from, bitboard_bsf(bb_to), MOVE_NORMAL);
-			}
-
-			reset_move:
-			moves = RESET_LS1B(moves);
 		}
-		pieces = RESET_LS1B(pieces);
 	}
 
 	/* Generate castling moves */
