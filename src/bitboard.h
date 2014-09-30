@@ -199,6 +199,8 @@ U64 bitboard_xrayFileAttacks(U64 occupancy, U64 blockers, Square from_sq);
 
 U64 bitboard_xrayRankAttacks(U64 occupancy, U64 blockers, Square from_sq);
 
+U64 bitboard_xrayRookAttacks(U64 occupancy, U64 blockers, Square from_sq);
+
 U64 bitboard_xrayDiagonalAttacks(U64 occupancy, U64 blockers, Square from_sq);
 
 #endif

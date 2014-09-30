@@ -366,6 +366,16 @@ U64 bitboard_xrayRankAttacks(U64 occupancy, U64 blockers, Square from_sq)
 	return attacks ^ bitboard_rankAttacks(occupancy ^ blockers, from_sq);
 }
 
+U64 bitboard_xrayRookAttacks(U64 occupancy, U64 blockers, Square from_sq)
+{
+	U64 attacks = Rmagic(from_sq, occupancy);
+	blockers &= attacks & C64(0x7EFFFFFFFFFFFF7E);
+	if (blockers == 0) {
+		return blockers;
+	}
+	return attacks ^ Rmagic(from_sq, occupancy ^ blockers);
+}
+
 U64 bitboard_xrayDiagonalAttacks(U64 occupancy, U64 blockers, Square from_sq)
 {
 	U64 attacks = Bmagic(from_sq, occupancy);

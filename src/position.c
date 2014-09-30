@@ -296,8 +296,8 @@ void static INLINE genPinned()
 	U64 sq = EMPTY;
 	Square king_sq = bitboard_bsf(OUR_KING);
 
-	pinner = bitboard_xrayFileAttacks(pos.bb_occupied, OUR_PIECES, king_sq) & OTHER_QUEEN_ROOKS;
-	pinner |= bitboard_xrayRankAttacks(pos.bb_occupied, OUR_PIECES, king_sq) & OTHER_QUEEN_ROOKS;
+	// pinner = bitboard_xrayFileAttacks(pos.bb_occupied, OUR_PIECES, king_sq) & OTHER_QUEEN_ROOKS;
+	pinner = bitboard_xrayRookAttacks(pos.bb_occupied, OUR_PIECES, king_sq) & OTHER_QUEEN_ROOKS;
 	pinner |= bitboard_xrayDiagonalAttacks(pos.bb_occupied, OUR_PIECES, king_sq) & OTHER_QUEEN_BISHOPS;
 
 	while (pinner) {
@@ -318,65 +318,42 @@ void genAttacks()
 {
 	U64 pieces = EMPTY;
 	Square sq;
+	U8 side;
+	
+	for (side=0; side < 2; side++) {
+		/* Generate king attacks */
+		pos.kingAttacks[side] = bitboard_getKingMoves(bitboard_bsf(pos.bb_pieces[K + side]));
 
-	/* Generate king attacks */
-	pos.kingAttacks[WHITE] = bitboard_getKingMoves(bitboard_bsf(pos.bb_pieces[K]));
-	pos.kingAttacks[BLACK] = bitboard_getKingMoves(bitboard_bsf(pos.bb_pieces[k]));
+		/* Generate knight attacks */
+		pieces = pos.bb_pieces[N + side];
+		while (pieces) {
+			pos.knightsAttacks[side] |= bitboard_getKnightMoves(bitboard_poplsb(&pieces));
+		}
 
-	/* Generate knight attacks */
-	pieces = pos.bb_pieces[N];
-	while (pieces) {
-		pos.knightsAttacks[WHITE] |= bitboard_getKnightMoves(bitboard_poplsb(&pieces));
-	}
+		/* Generate queen attacks */
+		pieces = pos.bb_pieces[Q + side];
+		while (pieces) {
+			sq = bitboard_poplsb(&pieces);
+			pos.queenRooksAttacks[side] |= Rmagic(sq, pos.bb_occupied);
+			pos.queenBishopsAttacks[side] |= Bmagic(sq, pos.bb_occupied);
+		}
 
-	pieces = pos.bb_pieces[n];
-	while (pieces) {
-		pos.knightsAttacks[BLACK] |= bitboard_getKnightMoves(bitboard_poplsb(&pieces));
-	}
+		/* Generate rook attacks */
+		pieces = pos.bb_pieces[R + side ];
+		while (pieces) {
+			sq = bitboard_poplsb(&pieces);
+			pos.queenRooksAttacks[side] |= Rmagic(sq, pos.bb_occupied);
+		}
 
-	/* Generate queen attacks */
-	pieces = pos.bb_pieces[Q];
-	while (pieces) {
-		sq = bitboard_poplsb(&pieces);
-		pos.queenRooksAttacks[WHITE] |= Rmagic(sq, pos.bb_occupied);
-		pos.queenBishopsAttacks[WHITE] |= Bmagic(sq, pos.bb_occupied);
-	}
-
-	pieces = pos.bb_pieces[q];
-	while (pieces) {
-		sq = bitboard_poplsb(&pieces);
-		pos.queenRooksAttacks[BLACK] |= Rmagic(sq, pos.bb_occupied);
-		pos.queenBishopsAttacks[BLACK] |= Bmagic(sq, pos.bb_occupied);
-	}
-
-	/* Generate rook attacks */
-	pieces = pos.bb_pieces[R];
-	while (pieces) {
-		sq = bitboard_poplsb(&pieces);
-		pos.queenRooksAttacks[WHITE] |= Rmagic(sq, pos.bb_occupied);
-	}
-
-	pieces = pos.bb_pieces[r];
-	while (pieces) {
-		sq = bitboard_poplsb(&pieces);
-		pos.queenRooksAttacks[BLACK] |= Rmagic(sq, pos.bb_occupied);
-	}
-
-	/* Generate bishop attacks */
-	pieces = pos.bb_pieces[B];
-	while (pieces) {
-		sq = bitboard_poplsb(&pieces);
-		pos.queenBishopsAttacks[WHITE] |= Bmagic(sq, pos.bb_occupied);
-	}
-
-	pieces = pos.bb_pieces[b];
-	while (pieces) {
-		sq = bitboard_poplsb(&pieces);
-		pos.queenBishopsAttacks[BLACK] |= Bmagic(sq, pos.bb_occupied);
+		/* Generate bishop attacks */
+		pieces = pos.bb_pieces[B + side];
+		while (pieces) {
+			sq = bitboard_poplsb(&pieces);
+			pos.queenBishopsAttacks[side] |= Bmagic(sq, pos.bb_occupied);
+		}
 	}
 
 	/* Generate pawn attacks */
-
 	pos.pawnAttacks[WHITE] = (bitboard_noWeOne(pos.bb_pieces[P]) | bitboard_noEaOne(pos.bb_pieces[P]));
 	pos.pawnAttacks[BLACK] = (bitboard_soWeOne(pos.bb_pieces[p]) | bitboard_soEaOne(pos.bb_pieces[p]));
 }
