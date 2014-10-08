@@ -146,6 +146,10 @@ int eval_position()
 	*/
 	int who2move = (pos.side == WHITE) ? 1 : -1;
 
+	if (pos.checkmated) {
+		return INFINITY * who2move;
+	}
+
 	int score = 0; // Material evaluation in centipawn
 
 	int popCnt[NONE_PIECE] = {0};

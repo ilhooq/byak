@@ -168,12 +168,6 @@ int search_root(int alpha, int beta, int depth)
 
 	int listLen = position_generateMoves(movelist);
 
-	if (listLen == 1) {
-		// If there is only one move, stop the search
-		infos.stop = 1;
-		infos.pv[0][0] = movelist[0];
-	}
-
 	sortMoves(movelist, listLen, 0);
 	int i;
 
@@ -219,12 +213,6 @@ int search_alphaBeta(int alpha, int beta, int depth, int ply)
 	Move movelist[256];
 	int i, score;
 	int listLen = position_generateMoves(movelist);
-
-	if (!listLen) {
-		score = (pos.side == WHITE) ? INFINITY : -INFINITY;
-		tt_save( pos.hash, score, depth, TT_EXACT);
-		return score;
-	}
 
 	for (i=0; i < listLen; i++)  {
 		position_makeMove(&movelist[i]);
