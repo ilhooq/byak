@@ -96,70 +96,30 @@ static INLINE U64 bitboard_swap (U64 bb) {
 	return __builtin_bswap64(bb);
 }
 
-#if !(defined __LP64__ || defined __LLP64__) || defined _WIN32 && !defined _WIN64
-/* This code works for 32 bits or 64 bits procesors*/
-static INLINE Square bitboard_bsf(U64 bb) 
-{
-	assert(bb);
-	/* Returns one plus the index of the 
-	 * least significant 1-bit of x, or if x is zero, returns zero */
-	return __builtin_ffsll(bb) - 1;
+/* Return the less significant bit position (0..63) in a bitboard */
+inline Square lsb(U64 b) {
+	assert(b);
+	return (Square) __builtin_ctzll(b);
 }
 
-static INLINE Square bitboard_bsr(U64 bb) 
-{
-	assert(bb);
-	/* Returns the number of leading 0-bits in x, starting at the most 
-	 * significant bit position. If x is 0, the result is undefined */
-	return 63 - __builtin_clzll(bb);
+/* Return the most significant bit position (0..63) in a bitboard */
+inline Square msb(U64 b) {
+	assert(b);
+	return (Square) (63 - __builtin_clzll(b));
 }
 
-#else
-/* This code is only for 64 bits procesors */
-/**
- * bitboard bitScanForward
- * @param bb bitboard to scan
- * @precondition bb != 0
- * @return index (0..63) of least significant one bit
- */
-
-static INLINE Square bitboard_bsf(U64 bb) 
-{
-	assert(bb);
-	U64 index;
-	__asm__("bsfq %1, %0" : "=r" (index) : "m" (bb));
-	return (Square) index;
-}
-
-
-/**
- * bitboard bitScanReverse
- * @param bb bitboard to scan
- * @precondition bb != 0
- * @return index (0..63) of most significant one bit
- */
-static INLINE Square bitboard_bsr(U64 bb) 
-{
-	assert(bb);
-	U64 index;
-	__asm__("bsrq %1, %0": "=r" (index) : "m" (bb));
-	return (Square) index;
-}
-
-#endif
 
 /**
  * Get the index and reset the less signifiant bit
  * @param bb bitboard to scan
  * @precondition bb != 0
- * @return index (0..63) of most significant one bit
+ * @return index (0..63) of the less significant bit
  */
-static INLINE Square bitboard_poplsb(U64 *bb) {
-	const Square s = bitboard_bsf(*bb);
+INLINE Square bitboard_poplsb(U64 *bb) {
+	const Square s = lsb(*bb);
 	*bb &= *bb - 1;
 	return s;
 }
-
 
 void bitboard_init();
 

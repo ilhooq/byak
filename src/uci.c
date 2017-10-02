@@ -78,8 +78,8 @@ static void uci_go(char * token)
 static Move uci_prepare_move(U64 from, U64 to, Piece promotion )
 {
 	Move move;
-	move.from = bitboard_bsf(from);
-	move.to = bitboard_bsf(to);
+	move.from = lsb(from);
+	move.to = lsb(to);
 	move.flags = MOVE_NORMAL;
 	move.captured_piece = NONE_PIECE;
 	move.castling_rights = 0;

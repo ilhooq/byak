@@ -236,7 +236,7 @@ void bitboard_init()
 
 char* bitboard_binToAlg(U64 bb)
 {
-	return bin2alg[bitboard_bsf(bb)];
+	return bin2alg[lsb(bb)];
 }
 
 U64 bitboard_algToBin(const char *alg)
