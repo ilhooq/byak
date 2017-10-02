@@ -14,8 +14,8 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-CC = gcc
-EXE = byak
+CC := gcc
+EXE := byak
 TEST_EXE := test$(EXE)
 CFLAGS =
 LDLIBS = -lpthread
@@ -23,36 +23,30 @@ LDFLAGS =
 WARN = -Wall
 OPTI = -O3
 
+ifneq ($(findstring win, $(TARGET) $(PLATFORM)),)
+	EXE := $(EXE).exe
+	TEST_EXE := $(TEST_EXE).exe
+	LDLIBS =
+endif
+
 ifeq ($(TARGET), win32)
 	# Produce WIN 32 bits exe from Linux
-	CC = i686-w64-mingw32-gcc
-	EXE = byak.exe
-	TEST_EXE = testsuite.exe
-	LDLIBS =
+	CC := i686-w64-mingw32-gcc
 endif
 
 ifeq ($(TARGET), win64)
 	# Produce WIN 64 bits exe from Linux
-	CC=x86_64-w64-mingw32-gcc
-	EXE = byak.exe
-	TEST_EXE = testsuite.exe
-	LDLIBS =
+	CC :=x86_64-w64-mingw32-gcc
 endif
 
 ifeq ($(PLATFORM), win32)
 	# Produce WIN 32 bits exe from Windows
-	CC = mingw32-gcc.exe
-	EXE = byak.exe
-	TEST_EXE = testsuite.exe
-	LDLIBS =
+	CC := mingw32-gcc.exe
 endif
 
 ifeq ($(PLATFORM), win64)
 	# Produce WIN 64 bits exe from Windows
-	CC = mingw64-gcc.exe
-	EXE = byak.exe
-	TEST_EXE = testsuite.exe
-	LDLIBS =
+	CC := mingw64-gcc.exe
 endif
 
 ifeq ($(DEBUG), 1)
@@ -93,6 +87,7 @@ COMMON_OBJ  := $(COMMON_SRC:%.c=%.o)
 all : $(EXE)
 
 test : $(TEST_EXE)
+	./$(TEST_EXE)
 
 $(EXE) : main.o $(COMMON_OBJ) 
 	$(CC) -o $@ $(WARN) $(OPTI) main.o $(COMMON_OBJ) $(LDFLAGS) $(LDLIBS)
