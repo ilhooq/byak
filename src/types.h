@@ -76,15 +76,6 @@ typedef uint8_t  U8;
 /* This constant is for magicmoves.h */
 #define __64_BIT_INTEGER_DEFINED__
 
-typedef enum enumProtocol {
-	DEFAULT,
-	UCI,
-	XBOARD
-} Protocol;
-
-extern Protocol protocol;
-
-
 typedef enum enumSquare {
 	a1, b1, c1, d1, e1, f1, g1, h1, /*  0 .. 7  */
 	a2, b2, c2, d2, e2, f2, g2, h2, /*  8 .. 15 */

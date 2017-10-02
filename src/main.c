@@ -28,8 +28,6 @@
 #include "time.h"
 #include "uci.h"
 
-Protocol protocol = DEFAULT;
-
 #define MAX_INPUT_SIZE 1024
 
 int main (int argc, char ** argv) {
@@ -58,10 +56,6 @@ int main (int argc, char ** argv) {
 				input[s-1] = '\0';
 			}
 
-			if (!strcmp(input, "uci")) {
-				protocol = UCI;
-			}
-			
 			if (!strcmp(input, "help")) {
 				// print help
 			}
@@ -78,12 +72,8 @@ int main (int argc, char ** argv) {
 				printf("depth:%i;time:%i;nodes:%llu;nps:%.0f\n", depth, timeused, ULL(nodes), nps);
 			}
 
-			switch (protocol) {
-				case UCI : uci_exec(input); break;
-				/* case XBOARD: break;  Not yet implemented */
-				default:
-					break;
-			}
+			uci_exec(input);
+
 		}
 	}
 
