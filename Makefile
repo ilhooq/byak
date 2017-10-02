@@ -105,4 +105,4 @@ $(COMMON_OBJ) : build/%.o: src/%.c
 	$(CC) -c $(WARN) $(OPTI) $(CFLAGS) $< -o $@
 
 clean :
-	rm -f -v build/*.o build/$(EXE) build/$(TEST_EXE) build/*.out build/*.gcov build/*.gcno build/*.gcda
+	cd build && rm -f -v *.o $(EXE) $(TEST_EXE) *.out *.gcov *.gcno *.gcda
