@@ -16,7 +16,7 @@
 
 CC := gcc
 EXE := byak
-TEST_EXE := test$(EXE)
+TEST_EXE := $(EXE)tests
 CFLAGS = -I./src
 LDLIBS = -lpthread
 LDFLAGS =
@@ -79,27 +79,27 @@ ifeq ($(CLANG), C99)
 	CFLAGS = -std=c99
 endif
 
-COMMON_SRC  := $(filter-out src/main.c test/maintest.c, $(wildcard src/*.c))
+COMMON_SRC  := $(filter-out src/main.c test/main.c, $(wildcard src/*.c))
 COMMON_OBJ  := $(COMMON_SRC:src/%.c=build/%.o)
 
 .PHONY: clean
 
 all : build/$(EXE)
 
-test : build/$(TEST_EXE)
+tests : build/$(TEST_EXE)
 	./build/$(TEST_EXE)
 
 build/$(EXE) : build/main.o $(COMMON_OBJ) 
 	$(CC) -o $@ $(WARN) $(OPTI) build/main.o $(COMMON_OBJ) $(LDFLAGS) $(LDLIBS)
 
-build/$(TEST_EXE) : build/maintest.o $(COMMON_OBJ) 
-	$(CC) -o $@ $(WARN) $(OPTI) build/maintest.o $(COMMON_OBJ) $(LDFLAGS) $(LDLIBS)
+build/$(TEST_EXE) : build/maintests.o $(COMMON_OBJ) 
+	$(CC) -o $@ $(WARN) $(OPTI) build/maintests.o $(COMMON_OBJ) $(LDFLAGS) $(LDLIBS)
 
 build/main.o :
 	$(CC) -c $(WARN) $(OPTI) $(CFLAGS) src/main.c -o build/main.o
 
-build/maintest.o :
-	$(CC) -c $(WARN) $(OPTI) $(CFLAGS) tests/maintest.c -o build/maintest.o
+build/maintests.o :
+	$(CC) -c $(WARN) $(OPTI) $(CFLAGS) tests/main.c -o build/maintests.o
 
 $(COMMON_OBJ) : build/%.o: src/%.c
 	$(CC) -c $(WARN) $(OPTI) $(CFLAGS) $< -o $@
