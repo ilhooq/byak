@@ -22,6 +22,7 @@
 #if !defined(_WIN32) && !defined(_WIN64)
 
 /* Linux - Unix */
+#include <stdlib.h>
 #include <sys/time.h>
 /**
  Get timestamp in ms

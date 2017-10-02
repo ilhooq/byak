@@ -17,7 +17,7 @@
 CC := gcc
 EXE := byak
 TEST_EXE := test$(EXE)
-CFLAGS = -I src
+CFLAGS = -I./src
 LDLIBS = -lpthread
 LDFLAGS =
 WARN = -Wall
