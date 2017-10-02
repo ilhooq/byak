@@ -28,31 +28,6 @@
 #include "move.h"
 #include "prng.h"
 #include "tt.h"
-#include "time.h"
-#include "search.h"
-#include "eval.h"
-
-void test_timeSearch(const char *fen, int mstime)
-{
-	position_init();
-	position_fromFen(fen);
-	SearchInfos infos = {0};
-	infos.time[WHITE] = mstime;
-	infos.time[BLACK] = mstime;
-	infos.movetime = infos.time[pos.side] / 40;
-	search_start(&infos);
-}
-
-void test_depthSearch(const char *fen, int depth)
-{
-	position_init();
-	position_fromFen(fen);
-	SearchInfos infos = {0};
-	infos.time[WHITE] = 0;
-	infos.time[BLACK] = 0;
-	infos.depth = depth;
-	search_start(&infos);
-}
 
 /* ************** Perft suite functions below ************** */
 void test_fen()
@@ -284,10 +259,6 @@ int main (int argc, char ** argv) {
 
 	bitboard_init();
 	prng_init(73);
-	/* 144MB */
-	tt_init(144000000);
-	position_init();
-	eval_init();
 
 	printf("Byak tests suite\n");
 
