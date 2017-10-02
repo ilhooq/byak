@@ -54,55 +54,6 @@ void test_depthSearch(const char *fen, int depth)
 	search_start(&infos);
 }
 
-void test_divide(const char *fen, int depth)
-{
-	U64 nodes = 0;
-	U64 count = 0;
-	U8 i, listlen;
-
-	position_init();
-	position_fromFen(fen);
-	position_display();
-
-	if (depth > 1) depth--;
-	else depth = 0;
-
-	Move movelist[256];
-	listlen= position_generateMoves(movelist);
-
-	for (i=0; i < listlen; i++){
-
-		position_makeMove(&movelist[i]);
-		count = search_perft(depth);
-		move_displayAlg(&movelist[i]);
-		printf(" : %llu\n", ULL(count));
-		position_undoMove(&movelist[i]);
-		nodes += count;
-	}
-	printf("\n\nNodes : %llu", ULL(nodes));
-}
-
-void test_perft(const char *fen, int depth)
-{
-	int start, timeused;
-	float nps;
-	position_init();
-	position_fromFen(fen);
-	start = GET_TIME();
-	U64 nodes = search_perft(depth);
-	timeused = GET_TIME() - start;
-	nps = (float) nodes / ((float) timeused /1000);
-	printf("depth:%i;time:%i;nodes:%llu;nps:%.0f\n", depth, timeused, ULL(nodes), nps);
-}
-
-void test_eval(const char *fen)
-{
-	position_init();
-	position_fromFen(fen);
-	eval_init();
-	printf("Score: %i \n", eval_position());
-}
-
 /* ************** Perft suite functions below ************** */
 void test_fen()
 {

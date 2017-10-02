@@ -25,7 +25,6 @@
 #include "eval.h"
 #include "prng.h"
 #include "tt.h"
-#include "time.h"
 #include "uci.h"
 
 #define MAX_INPUT_SIZE 1024
@@ -50,30 +49,15 @@ int main (int argc, char ** argv) {
 	while(1) {
 		
 		if (fgets(input, MAX_INPUT_SIZE, stdin) != NULL) {
+
 			/* Remove the newline character */
 			int s = strlen(input);
+
 			if (s > 1 && input[s-1] == '\n') {
 				input[s-1] = '\0';
 			}
 
-			if (!strcmp(input, "help")) {
-				// print help
-			}
-
-			if (!strncmp(input, "perft", 5)) {
-				int start, timeused, depth;
-				float nps;
-				depth =  atoi(input + 6);
-
-				start = GET_TIME();
-				U64 nodes = search_perft(depth);
-				timeused = GET_TIME() - start;
-				nps = (float) nodes / ((float) timeused /1000);
-				printf("depth:%i;time:%i;nodes:%llu;nps:%.0f\n", depth, timeused, ULL(nodes), nps);
-			}
-
 			uci_exec(input);
-
 		}
 	}
 

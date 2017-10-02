@@ -27,6 +27,7 @@
 #include <stdlib.h> 
 #include <string.h>
 #include "bitboard.h"
+#include "eval.h"
 #include "tt.h"
 #include "position.h"
 #include "move.h"
@@ -161,6 +162,46 @@ static void uci_parse_moves(const char * moves)
 	}
 }
 
+
+static void uci_ext_perft(int depth)
+{
+	int start, timeused;
+	float nps;
+
+	start = GET_TIME();
+	U64 nodes = search_perft(depth);
+	timeused = GET_TIME() - start;
+	nps = (float) nodes / ((float) timeused /1000);
+	printf("depth:%i;time:%i;nodes:%llu;nps:%.0f\n", depth, timeused, ULL(nodes), nps);
+}
+
+
+void uci_ext_divide(int depth)
+{
+	U64 nodes = 0;
+	U64 count = 0;
+	U8 i, listlen;
+
+	if (depth > 1) depth--;
+	else depth = 0;
+
+	Move movelist[256];
+	listlen = position_generateMoves(movelist);
+
+	for (i=0; i < listlen; i++) {
+
+		position_makeMove(&movelist[i]);
+		count = search_perft(depth);
+		move_displayAlg(&movelist[i]);
+		printf(" : %llu\n", ULL(count));
+		position_undoMove(&movelist[i]);
+		nodes += count;
+	}
+
+	printf("\n\nNodes : %llu\n", ULL(nodes));
+}
+
+
 void uci_exec(char * command)
 {
 	if (!strcmp(command, "uci")) {
@@ -235,11 +276,28 @@ void uci_exec(char * command)
 		exit(EXIT_SUCCESS);
 	}
 
-	/* Not UCI protocol */
+	/* UCI Custom extensions */
+
+	if (!strcmp(command, "help")) {
+		// print help
+	}
 
 	if (!strcmp(command, "display")) {
 		position_display();
 	}
+
+	if (!strncmp(command, "perft", 5)) {
+		uci_ext_perft(atoi(command + 6));
+	}
+
+	if (!strncmp(command, "divide", 6)) {
+		uci_ext_divide(atoi(command + 7));
+	}
+
+	if (!strncmp(command, "eval", 4)) {
+		printf("score: %i \n", eval_position());
+	}
+
 }
 
 void uci_print_move(Move *move)
