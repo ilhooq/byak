@@ -16,7 +16,7 @@
 
 CC = gcc
 EXE = byak
-TEST_EXE = byak_testsuite
+TEST_EXE := test$(EXE)
 CFLAGS =
 LDLIBS = -lpthread
 LDFLAGS =
@@ -85,26 +85,26 @@ ifeq ($(CLANG), C99)
 	CFLAGS = -std=c99
 endif
 
-COMMON_SRC  := $(filter-out test.c main.c, $(wildcard *.c))
+COMMON_SRC  := $(filter-out maintest.c main.c, $(wildcard *.c))
 COMMON_OBJ  := $(COMMON_SRC:%.c=%.o)
 
 .PHONY: clean
 
 all : $(EXE)
 
-testsuite : $(TEST_EXE)
+test : $(TEST_EXE)
 
 $(EXE) : main.o $(COMMON_OBJ) 
 	$(CC) -o $@ $(WARN) $(OPTI) main.o $(COMMON_OBJ) $(LDFLAGS) $(LDLIBS)
 
-$(TEST_EXE) : test.o $(COMMON_OBJ) 
-	$(CC) -o $@ $(WARN) $(OPTI) test.o $(COMMON_OBJ) $(LDFLAGS) $(LDLIBS)
+$(TEST_EXE) : maintest.o $(COMMON_OBJ) 
+	$(CC) -o $@ $(WARN) $(OPTI) maintest.o $(COMMON_OBJ) $(LDFLAGS) $(LDLIBS)
 
 main.o :
 	$(CC) -c $(WARN) $(OPTI) $(CFLAGS) main.c -o main.o
 
-test.o :
-	$(CC) -c $(WARN) $(OPTI) $(CFLAGS) test.c -o test.o
+maintest.o :
+	$(CC) -c $(WARN) $(OPTI) $(CFLAGS) maintest.c -o maintest.o
 
 $(COMMON_OBJ) : %.o: %.c
 	$(CC) -c $(WARN) $(OPTI) $(CFLAGS) $< -o $@
