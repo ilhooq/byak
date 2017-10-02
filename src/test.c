@@ -22,27 +22,26 @@
 #include <string.h>
 #include "bitboard.h"
 #include "magicmoves.h"
-#include "test.h"
 #include "position.h"
 #include "util.h"
 #include "move.h"
 #include "prng.h"
 #include "tt.h"
 
-/* ************** Perft suite functions below ************** */
-void test_fen()
+/* ************** Test suite functions below ************** */
+static void test_fen()
 {
 	position_init();
 	assert(position_fromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1") == 0);
 }
 
-void test_magicMoves()
+static void test_magicMoves()
 {
 	printf("Test magicmoves\n");
 	assert(Bmagic(d4, C64(0x8000020000002001)) == C64(0x8040221400142201));
 }
 
-void testInBetweenSquares() 
+static void testInBetweenSquares()
 {
 	printf("Test in between squares\n");
 	assert(bitboard_getObstructed(d1, d4) == C64(0x0000000000080800));
@@ -51,7 +50,7 @@ void testInBetweenSquares()
 	assert(bitboard_getObstructed(a1, h1) == C64(0x000000000000007E));
 }
 
-void test_kingMoves()
+static void test_kingMoves()
 {
 	printf("Test King Moves\n");
 	assert(bitboard_getKingMoves(a8) == C64(0x0203000000000000));
@@ -62,7 +61,7 @@ void test_kingMoves()
 	assert(bitboard_getKingMoves(h1) == C64(0x000000000000C040));
 }
 
-void test_knightMoves()
+static void test_knightMoves()
 {
 	printf("Test Knight Moves\n");
 	assert(bitboard_getKnightMoves(a8) == C64(0x0004020000000000));
@@ -73,7 +72,7 @@ void test_knightMoves()
 	assert(bitboard_getKnightMoves(h1) == C64(0x0000000000402000));
 }
 
-void test_FileRankAccess()
+static void test_FileRankAccess()
 {
 	printf("Test file and rank access\n");
 	assert(bitboard_getRank(a8) == RANK8);
@@ -91,7 +90,7 @@ void test_FileRankAccess()
 	assert(bitboard_getFile(a1) == FILEA);
 }
 
-void test_DiagNW()
+static void test_DiagNW()
 {
 	printf("Test diag NW\n");
 	assert(bitboard_getDiagNW(a8) == C64(0x0102040810204080));
@@ -104,7 +103,7 @@ void test_DiagNW()
 	assert(bitboard_getDiagNW(h7) == C64(0x4080000000000000));
 }
 
-void test_DiagNE()
+static void test_DiagNE()
 {
 	printf("Test diag NE()\n");
 	assert(bitboard_getDiagNE(a8) == C64(0x0100000000000000));
@@ -117,7 +116,7 @@ void test_DiagNE()
 	assert(bitboard_getDiagNE(h2) == C64(0x0000000000008040));
 }
 
-void test_bin2alg()
+static void test_bin2alg()
 {
 	printf("Test bin to alg\n");
 	assert(strcmp(bitboard_binToAlg(C64(1) << a1), "a1") == 0);
@@ -186,7 +185,7 @@ void test_bin2alg()
 	assert(strcmp(bitboard_binToAlg(C64(1) << h8), "h8") == 0);
 }
 
-void test_alg2bin()
+static void test_alg2bin()
 {
 	printf("Test alg to bin\n");
 	assert(bitboard_algToBin("a1") == C64(1) << a1);
