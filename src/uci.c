@@ -34,23 +34,23 @@
 #include "time.h"
 
 
-static void uci_go(char * token)
+static void uci_go(char * command)
 {
-	char * subtoken = NULL;
+	char * subcommand = NULL;
 	SearchInfos infos = {0};
 
 	infos.time[WHITE] = 0;
 	infos.time[BLACK] = 0;
 
-	if ((subtoken = strstr(token, "wtime"))) {
-		infos.time[WHITE] = atoi(subtoken+6);
+	if ((subcommand = strstr(command, "wtime"))) {
+		infos.time[WHITE] = atoi(subcommand+6);
 	}
 
-	if ((subtoken = strstr(token, "btime"))) {
-		infos.time[BLACK] = atoi(subtoken+6);
+	if ((subcommand = strstr(command, "btime"))) {
+		infos.time[BLACK] = atoi(subcommand+6);
 	}
 
-	if ((subtoken = strstr(token, "infinite"))) {
+	if ((subcommand = strstr(command, "infinite"))) {
 		infos.depth = MAX_DEPTH;
 	}
 
@@ -161,9 +161,9 @@ static void uci_parse_moves(const char * moves)
 	}
 }
 
-void uci_exec(char * token)
+void uci_exec(char * command)
 {
-	if (!strcmp(token, "uci")) {
+	if (!strcmp(command, "uci")) {
 		printf("id name chess_engine\n");
 		printf("id author Sylvain Philip\n");
 
@@ -173,15 +173,15 @@ void uci_exec(char * token)
 		printf("uciok\n");
 	}
 
-	if (!strcmp(token, "isready")) {
+	if (!strcmp(command, "isready")) {
 		printf("readyok\n");
 	}
 
-	if (!strncmp(token, "setoption", 9)) {
+	if (!strncmp(command, "setoption", 9)) {
 		char name[256];
 		char value[256];
 
-		sscanf(token, "setoption name %255s value %255s", name, value);
+		sscanf(command, "setoption name %255s value %255s", name, value);
 
 		if (!strcmp(name, "Hash")) {
 			int val;
@@ -191,53 +191,53 @@ void uci_exec(char * token)
 		}
 	}
 
-	if (!strcmp(token, "ucinewgame")) {
+	if (!strcmp(command, "ucinewgame")) {
 		
 	}
 
-	if (!strncmp(token, "position", 8)) {
+	if (!strncmp(command, "position", 8)) {
 		/* position [fen | startpos] [moves ...] */
 		position_init();
 
-		if (!strncmp(token,"position fen",12)) {
-			position_fromFen(token + 13);
+		if (!strncmp(command,"position fen",12)) {
+			position_fromFen(command + 13);
 		} else {
 			position_fromFen("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 		}
 
-		char * moves = strstr(token, "moves");
+		char * moves = strstr(command, "moves");
 		if (moves) {
 			uci_parse_moves(moves+6);
 		}
 	}
 	
-	if (!strncmp(token, "go", 2)) {
-		uci_go(token);
+	if (!strncmp(command, "go", 2)) {
+		uci_go(command);
 	}
 
-	if (!strncmp(token, "debug", 5)) {
+	if (!strncmp(command, "debug", 5)) {
 		/* 
-		debug = strcmp(token,"debug off");
+		debug = strcmp(command,"debug off");
 		*/
 	}
 
-	if (!strcmp(token, "ponderhit")) {
+	if (!strcmp(command, "ponderhit")) {
 		/*
 		time_uci_ponderhit();
 		*/
 	}
 
-	if (!strcmp(token, "stop")) {
+	if (!strcmp(command, "stop")) {
 		search_stop();
 	}
 
-	if (!strcmp(token, "quit")) {
+	if (!strcmp(command, "quit")) {
 		exit(EXIT_SUCCESS);
 	}
 
 	/* Not UCI protocol */
 
-	if (!strcmp(token, "display")) {
+	if (!strcmp(command, "display")) {
 		position_display();
 	}
 }
