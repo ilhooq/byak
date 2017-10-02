@@ -32,20 +32,6 @@
 #include "search.h"
 #include "eval.h"
 
-void test_suite()
-{
-	test_bin2alg();
-	test_alg2bin();
-	test_FileRankAccess();
-	test_kingMoves();
-	test_knightMoves();
-	test_DiagNW();
-	test_DiagNE();
-	test_magicMoves();
-	testInBetweenSquares();
-	test_fen();
-}
-
 void test_timeSearch(const char *fen, int mstime)
 {
 	position_init();
@@ -342,3 +328,30 @@ void test_alg2bin()
 	assert(bitboard_algToBin("h7") == C64(1) << h7);
 	assert(bitboard_algToBin("h8") == C64(1) << h8);
 }
+
+int main (int argc, char ** argv) {
+
+	bitboard_init();
+	prng_init(73);
+	/* 144MB */
+	tt_init(144000000);
+	position_init();
+	eval_init();
+
+	printf("Byak tests suite\n");
+
+	test_bin2alg();
+	test_alg2bin();
+	test_FileRankAccess();
+	test_kingMoves();
+	test_knightMoves();
+	test_DiagNW();
+	test_DiagNE();
+	test_magicMoves();
+	testInBetweenSquares();
+	test_fen();
+
+	return 0;
+}
+
+

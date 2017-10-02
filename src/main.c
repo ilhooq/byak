@@ -25,7 +25,6 @@
 #include "eval.h"
 #include "prng.h"
 #include "tt.h"
-#include "test.h"
 #include "time.h"
 #include "uci.h"
 
@@ -41,87 +40,6 @@ int main (int argc, char ** argv) {
 	tt_init(144000000);
 	position_init();
 	eval_init();
-
-	int i;
-
-	for (i=0; i < argc; i++) {
-
-		if (!strcmp(argv[i], "testsuite")) {
-			test_suite();
-			return 0;
-		}
-
-		if (!strcmp(argv[i], "timesearch")) {
-			/* Command to test a search against a fen string with a 
-			   limited amount of time (in ms) for each side.
-			   For instance :
-			  ./byak testsearch "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1" 300000
-			*/
-			if (i+1 < argc) {
-				char * fen = argv[i+1];
-				if (i+2 < argc) {
-					int time = atoi(argv[i+2]);
-					test_timeSearch(fen, time);
-				}
-			}
-			return 0;
-		}
-
-		if (!strcmp(argv[i], "depthsearch")) {
-			/* Command to test a search against a fen string with a 
-			   limited depth.
-			   For instance :
-			  ./byak testsearch "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1" 6
-			*/
-			if (i+1 < argc) {
-				char * fen = argv[i+1];
-				if (i+2 < argc) {
-					int depth = atoi(argv[i+2]);
-					test_depthSearch(fen, depth);
-				}
-			}
-			return 0;
-		}
-
-		if (!strcmp(argv[i], "perft")) {
-			/* Perft against a fen string.
-			   byak perft [fenstring] [depth]
-			   For instance :
-			  ./byak perft "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1" 3
-			*/
-			if (i+1 < argc) {
-				char * fen = argv[i+1];
-				if (i+2 < argc) {
-					int depth = atoi(argv[i+2]);
-					test_perft(fen, depth);
-				}
-			}
-			return 0;
-		}
-
-		if (!strcmp(argv[i], "divide")) {
-			if (i+1 < argc) {
-				char * fen = argv[i+1];
-				if (i+2 < argc) {
-					int depth = atoi(argv[i+2]);
-					test_divide(fen, depth);
-				}
-			}
-			return 0;
-		}
-		
-		if (!strcmp(argv[i], "eval")) {
-			/* Evaluate a position a fen string.
-			   For instance :
-			  ./byak eval "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq - 0 1"
-			*/
-			if (i+1 < argc) {
-				char * fen = argv[i+1];
-				test_eval(fen);
-			}
-			return 0;
-		}
-	}
 
 	printf("Chess Engine By Sylvain Philip\n");
 

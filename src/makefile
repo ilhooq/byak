@@ -16,6 +16,7 @@
 
 CC = gcc
 EXE = byak
+TEST_EXE = byak_testsuite
 CFLAGS =
 LDLIBS = -lpthread
 LDFLAGS =
@@ -26,6 +27,7 @@ ifeq ($(TARGET), win32)
 	# Produce WIN 32 bits exe from Linux
 	CC = i686-w64-mingw32-gcc
 	EXE = byak.exe
+	TEST_EXE = testsuite.exe
 	LDLIBS =
 endif
 
@@ -33,6 +35,7 @@ ifeq ($(TARGET), win64)
 	# Produce WIN 64 bits exe from Linux
 	CC=x86_64-w64-mingw32-gcc
 	EXE = byak.exe
+	TEST_EXE = testsuite.exe
 	LDLIBS =
 endif
 
@@ -40,6 +43,7 @@ ifeq ($(PLATFORM), win32)
 	# Produce WIN 32 bits exe from Windows
 	CC = mingw32-gcc.exe
 	EXE = byak.exe
+	TEST_EXE = testsuite.exe
 	LDLIBS =
 endif
 
@@ -47,6 +51,7 @@ ifeq ($(PLATFORM), win64)
 	# Produce WIN 64 bits exe from Windows
 	CC = mingw64-gcc.exe
 	EXE = byak.exe
+	TEST_EXE = testsuite.exe
 	LDLIBS =
 endif
 
@@ -80,19 +85,29 @@ ifeq ($(CLANG), C99)
 	CFLAGS = -std=c99
 endif
 
+COMMON_SRC  := $(filter-out test.c main.c, $(wildcard *.c))
+COMMON_OBJ  := $(COMMON_SRC:%.c=%.o)
 
-SRC  = $(wildcard *.c)
-OBJ  = $(SRC:%.c=%.o)
+.PHONY: clean
 
 all : $(EXE)
 
-# Linking
-$(EXE) : $(OBJ)
-	$(CC) -o $@ $(WARN) $(OPTI) $(OBJ) $(LDFLAGS) $(LDLIBS)
+testsuite : $(TEST_EXE)
 
-# Compilation
-%.o : %.c
-	$(CC) -c -o $@ $< $(WARN) $(OPTI) $(CFLAGS)
+$(EXE) : main.o $(COMMON_OBJ) 
+	$(CC) -o $@ $(WARN) $(OPTI) main.o $(COMMON_OBJ) $(LDFLAGS) $(LDLIBS)
+
+$(TEST_EXE) : test.o $(COMMON_OBJ) 
+	$(CC) -o $@ $(WARN) $(OPTI) test.o $(COMMON_OBJ) $(LDFLAGS) $(LDLIBS)
+
+main.o :
+	$(CC) -c $(WARN) $(OPTI) $(CFLAGS) main.c -o main.o
+
+test.o :
+	$(CC) -c $(WARN) $(OPTI) $(CFLAGS) test.c -o test.o
+
+$(COMMON_OBJ) : %.o: %.c
+	$(CC) -c $(WARN) $(OPTI) $(CFLAGS) $< -o $@
 
 clean :
-	rm -f -v *.o $(EXE) $(EXE).exe *.out *.gcov *.gcno *.gcda
+	rm -f -v *.o $(EXE) $(TEST_EXE) *.out *.gcov *.gcno *.gcda
