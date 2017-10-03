@@ -291,7 +291,7 @@ int search_negamax(int depth, int ply)
 	return max;
 }
 
-U64 search_perft(int depth)
+U64 search_perft_tt(int depth)
 {
 	U64 nodes = 0;
 	int val = tt_perft_probe(pos.hash, depth);
@@ -316,11 +316,34 @@ U64 search_perft(int depth)
 
 	for (i=0; i < listLen; i++) {
 		position_makeMove(&movelist[i]);
-		nodes += search_perft(depth - 1);
+		nodes += search_perft_tt(depth - 1);
 		position_undoMove(&movelist[i]);
 	}
 
 	tt_perft_save(pos.hash, nodes, depth);
+	return nodes;
+}
+
+U64 search_perft(int depth)
+{
+	U64 nodes = 0;
+
+	int listLen = 0;
+	int i;
+
+	Move movelist[256];
+	listLen = position_generateMoves(movelist);
+
+	if (depth == 1) {
+		return listLen;
+	}
+
+	for (i=0; i < listLen; i++) {
+		position_makeMove(&movelist[i]);
+		nodes += search_perft(depth - 1);
+		position_undoMove(&movelist[i]);
+	}
+
 	return nodes;
 }
 

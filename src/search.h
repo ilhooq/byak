@@ -36,7 +36,11 @@ typedef struct {
 
 void* search_start(void* data);
 void search_stop();
+
+// Simple perft without Transpostion table
 U64 search_perft(int depth);
+// Perft using Transpostion table
+U64 search_perft_tt(int depth);
 
 void search_iterate();
 int search_root(int alpha, int beta, int depth);

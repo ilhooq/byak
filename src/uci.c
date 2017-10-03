@@ -162,14 +162,22 @@ static void uci_parse_moves(const char * moves)
 	}
 }
 
-
-static void uci_ext_perft(int depth)
+static void uci_ext_perft(int depth, int use_tt)
 {
 	int start, timeused;
 	float nps;
+	U64 nodes;
 
 	start = GET_TIME();
-	U64 nodes = search_perft(depth);
+
+	if (!use_tt) {
+		printf("Use tt: no\n");
+		nodes = search_perft(depth);
+	} else {
+		printf("Use tt: yes\n");
+		nodes = search_perft_tt(depth);
+	}
+
 	timeused = GET_TIME() - start;
 	nps = (float) nodes / ((float) timeused /1000);
 	printf("depth:%i;time:%i;nodes:%llu;nps:%.0f\n", depth, timeused, ULL(nodes), nps);
@@ -287,7 +295,14 @@ void uci_exec(char * command)
 	}
 
 	if (!strncmp(command, "perft", 5)) {
-		uci_ext_perft(atoi(command + 6));
+		// Use transposition table
+		int use_tt = 0;
+
+		if (strstr(command, "tt")) {
+			use_tt = 1;
+		}
+
+		uci_ext_perft(atoi(command + 6), use_tt);
 	}
 
 	if (!strncmp(command, "divide", 6)) {
