@@ -304,6 +304,7 @@ void static INLINE genPinned()
 		sq  = LS1B(pinner);
 		pinned = bitboard_getObstructed(lsb(sq), king_sq) & OUR_PIECES;
 		pos.pinned |= pinned;
+		// Todo: Try to use a mask at initialization time like in Sloppy (pin_mask)
 		pos.pinner[lsb(pinned)] = sq;
 		pinner = RESET_LS1B(pinner);
 	}
