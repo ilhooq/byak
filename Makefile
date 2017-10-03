@@ -17,11 +17,11 @@
 CC := gcc
 EXE := byak
 TEST_EXE := $(EXE)tests
-CFLAGS = -I./src
+CFLAGS = -std=c11 -I./src
 LDLIBS = -lpthread
 LDFLAGS =
 WARN = -Wall
-OPTI = -O3
+OPTI = -O3 -flto
 
 ifneq ($(findstring win, $(TARGET) $(PLATFORM)),)
 	EXE := $(EXE).exe
@@ -55,34 +55,30 @@ ifeq ($(DEBUG), 1)
 	OPTI =
 endif
 
-ifeq ($(DEBUG-PROFILE), 1)
+ifeq ($(DEBUG_PROFILE), 1)
 	# Add Gprof support
 	CFLAGS += -pg -DDEBUG -Wno-unused-function
 	LDFLAGS += -pg
 	OPTI =
 endif
 
-ifeq ($(DEBUG-GCOV), 1)
-	# Add Gcov support
+ifeq ($(DEBUG_COVERAGE), 1)
+	# Add code coverage for gcov
 	CFLAGS += -fprofile-arcs -ftest-coverage -DDEBUG
 	LDFLAGS += -fprofile-arcs -ftest-coverage
 	OPTI =
 endif
 
-ifeq ($(USE-INLINING), 1)
+ifeq ($(USE_INLINING), 1)
 	# Force inlining (Enabled by default in non-debugging mode)
 	CFLAGS += -DUSE_INLINING
 endif
 
-ifeq ($(CLANG), C99)
-	# Compile in C99
-	CFLAGS = -std=c99
-endif
 
 COMMON_SRC  := $(filter-out src/main.c test/main.c, $(wildcard src/*.c))
 COMMON_OBJ  := $(COMMON_SRC:src/%.c=build/%.o)
 
-.PHONY: clean
+.PHONY: clean coverage
 
 all : build/$(EXE)
 
@@ -106,3 +102,19 @@ $(COMMON_OBJ) : build/%.o: src/%.c
 
 clean :
 	cd build && rm -f -v *.o $(EXE) $(TEST_EXE) *.out *.gcov *.gcno *.gcda
+
+# Before generate coverage info, build byak for debug coverage :
+# DEBUG_COVERAGE=1 make
+# Then run byak to generate gcov files
+coverage :
+	lcov -c -d `pwd`/build -o build/cov.info
+	genhtml `pwd`/build/cov.info --output-directory build/cov
+
+profile : build/$(EXE) build/callgrind.out
+
+build/callgrind.out :
+	valgrind --tool=callgrind --callgrind-out-file=build/callgrind.out build/byak
+
+callgraph : build/callgrind.out
+	gprof2dot --format=callgrind build/callgrind.out | dot -Tpng -o build/callgraph.png
+
