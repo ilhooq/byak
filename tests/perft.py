@@ -25,7 +25,7 @@ if len(sys.argv) > 1:
 with open(epdFile, 'r') as fp:
 	lines = fp.read().split("\n")
 
-child = pexpect.spawn(basePath + "/src/byak")
+child = pexpect.spawn(basePath + "/build/byak")
 child.logfile = sys.stdout
 
 child.sendline('uci');
@@ -50,7 +50,7 @@ for line in lines:
 
 	child.sendline("position fen %s" % fen);
 	child.expect("");
-	child.sendline("perft %s" % depth);
+	child.sendline("perft %s tt" % depth);
 	child.expect("nodes:%s" % nodes, timeout=60);
 
 
