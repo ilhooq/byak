@@ -76,7 +76,7 @@ Position pos;
 
 static int movelistcount;
 
-static void INLINE position_refresh()
+inline FORCE_INLINE static void position_refresh()
 {
 	memset(pos.pinner, 0, sizeof(pos.pinner));
 
@@ -109,15 +109,14 @@ static void INLINE position_refresh()
 	pos.bb_empty = ~pos.bb_occupied;
 }
 
-static void INLINE listAdd(Move *movelist, U8 from_square, U8 to_square, U16 type)
+inline FORCE_INLINE static void listAdd(Move *movelist, U8 from_square, U8 to_square, U16 type)
 {
-	Move * move = &movelist[movelistcount];
-	move->from = from_square;
-	move->to = to_square;
-	move->flags = type;
+	movelist[movelistcount].from = from_square;
+	movelist[movelistcount].to = to_square;
+	movelist[movelistcount].flags = type;
+
 	movelistcount++;
 }
-
 
 static U64 position_getAttackersTo(Square sq) {
 	U64 bb_sq = SQ64(sq);
@@ -231,7 +230,7 @@ static int canTakeEp(U64 from, U64 to)
 	return 1;
 }
 
-static int INLINE canMove(U64 from_square, U64 to_square)
+static int canMove(U64 from_square, U64 to_square)
 {
 	/* Make sure that the oponent king is not on destination square */
 	if (to_square & OTHER_KING) {
@@ -289,7 +288,7 @@ static void addPromotionMoves( Move *movelist, Square from_square, Square to_squ
 	listAdd(movelist, from_square, to_square, (type|MOVE_PROMOTION|MOVE_PROMOTION_ROOK));
 }
 
-void static INLINE genPinned()
+void static inline genPinned()
 {
 	U64 pinned = EMPTY;
 	U64 pinner = EMPTY;
@@ -310,11 +309,6 @@ void static INLINE genPinned()
 	}
 }
 
-
-/*
-   For this function, perfs are better without static and 
-   INLINE declaration probably because of linker optimizations.
-*/
 void genAttacks()
 {
 	U64 pieces = EMPTY;

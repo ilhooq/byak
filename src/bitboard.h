@@ -79,7 +79,7 @@
 #define bitboard_noWeOne(constantU64) (((constantU64) << 7) & C64(0x7f7f7f7f7f7f7f7f))
 
 
-static INLINE int bitboard_popCount(U64 bb) {
+static inline int bitboard_popCount(U64 bb) {
 	/*
 	int count = 0;
 	while (x) {
@@ -92,17 +92,17 @@ static INLINE int bitboard_popCount(U64 bb) {
 	return __builtin_popcountll(bb);
 }
 
-static INLINE U64 bitboard_swap (U64 bb) {
+static inline U64 bitboard_swap (U64 bb) {
 	return __builtin_bswap64(bb);
 }
 
-/* Return the less significant bit position (0..63) in a bitboard */
-inline Square lsb(U64 b) {
+/* Return the less significant bit index (0..63) in a bitboard */
+static inline Square lsb(U64 b) {
 	assert(b);
 	return (Square) __builtin_ctzll(b);
 }
 
-/* Return the most significant bit position (0..63) in a bitboard */
+/* Return the most significant bit index (0..63) in a bitboard */
 inline Square msb(U64 b) {
 	assert(b);
 	return (Square) (63 - __builtin_clzll(b));
@@ -115,7 +115,7 @@ inline Square msb(U64 b) {
  * @precondition bb != 0
  * @return index (0..63) of the less significant bit
  */
-INLINE Square bitboard_poplsb(U64 *bb) {
+static inline Square bitboard_poplsb(U64 *bb) {
 	const Square s = lsb(*bb);
 	*bb &= *bb - 1;
 	return s;

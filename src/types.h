@@ -51,6 +51,8 @@
 	#define NDEBUG
 #endif
 
+#define FORCE_INLINE __attribute__((always_inline))
+
 /* inline is not valid in C ANSI */
 #ifdef USE_INLINING
 	#ifdef _MSC_VER
