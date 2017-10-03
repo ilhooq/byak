@@ -188,8 +188,8 @@ int eval_position()
 			if (w_endgame[i].mask & bb_pieces) {
 				score += bitboard_popCount(w_endgame[i].mask & bb_pieces) * w_endgame[i].score;
 			}
-			bb_pieces = pos.bb_pieces[b_opening[i].piece];
-			if (b_opening[i].mask & bb_pieces) {
+			bb_pieces = pos.bb_pieces[b_endgame[i].piece];
+			if (b_endgame[i].mask & bb_pieces) {
 				score -= bitboard_popCount(b_endgame[i].mask & bb_pieces) * b_endgame[i].score;
 			}
 		}
@@ -201,8 +201,8 @@ int eval_position()
 			if (w_middlegame[i].mask & bb_pieces) {
 				score += bitboard_popCount(w_middlegame[i].mask & bb_pieces) * w_middlegame[i].score;
 			}
-			bb_pieces = pos.bb_pieces[b_opening[i].piece];
-			if (b_opening[i].mask & bb_pieces) {
+			bb_pieces = pos.bb_pieces[b_middlegame[i].piece];
+			if (b_middlegame[i].mask & bb_pieces) {
 				score -= bitboard_popCount(b_middlegame[i].mask & bb_pieces) * b_middlegame[i].score;
 			}
 		}
